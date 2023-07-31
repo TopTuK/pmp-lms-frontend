@@ -1,4 +1,3 @@
-import { describe, test, beforeEach, expect, vi } from 'vitest';
 import { createApp } from 'vue';
 import { setActivePinia } from 'pinia';
 import { createTestingPinia } from '@pinia/testing';
@@ -14,13 +13,10 @@ import {
   getAnswer,
 } from '@/api/homework';
 import getThreads from '@/utils/getThreads';
-import {
-  getAnswerData,
-  getAnswersData,
-  getQuestionData,
-  getThreadData,
-  getCommentData,
-} from '@/mocks/homework';
+import { mockAnswer } from '@/mocks/mockAnswer';
+import { mockThread } from '@/mocks/mockThread';
+import { mockQuestion } from '@/mocks/mockQuestion';
+import { mockComment } from '@/mocks/mockComment';
 
 vi.mock('@/api/homework', () => {
   return {
@@ -35,16 +31,16 @@ vi.mock('@/api/homework', () => {
 vi.mock('@/utils/getThreads');
 
 const text = faker.lorem.sentence();
-const questionId = faker.datatype.uuid();
-const parentId = faker.datatype.uuid();
-const authorId = faker.datatype.uuid();
-const answerId = faker.datatype.uuid();
+const questionId = faker.string.uuid();
+const parentId = faker.string.uuid();
+const authorId = faker.string.uuid();
+const answerId = faker.string.uuid();
 
-const answerData = getAnswerData();
-const answersData = getAnswersData();
-const threadsData = getThreadData();
-const postData = getCommentData({ ...getThreadData(), parent: parentId });
-const questionData = getQuestionData();
+const answerData = mockAnswer();
+const answersData = faker.helpers.multiple(mockAnswer, { count: 3 });
+const threadsData = mockThread();
+const postData = mockComment({ ...mockThread(), parent: parentId });
+const questionData = mockQuestion();
 
 describe('homework store', () => {
   let homework: ReturnType<typeof useHomework>;
@@ -76,7 +72,7 @@ describe('homework store', () => {
   test('getQuestion calls api', async () => {
     await homework.getQuestion(questionId);
 
-    expect(getQuestion).toHaveBeenCalledOnce();
+    expect(getQuestion).toHaveBeenCalledTimes(1);
     expect(getQuestion).toHaveBeenCalledWith(questionId);
   });
 
@@ -92,7 +88,7 @@ describe('homework store', () => {
     const threads = true;
     await homework.getAnswers({ questionId, authorId, threads });
 
-    expect(getAnswers).toHaveBeenCalledOnce();
+    expect(getAnswers).toHaveBeenCalledTimes(1);
     expect(getAnswers).toHaveBeenCalledWith({ questionId, authorId });
   });
 
@@ -100,7 +96,7 @@ describe('homework store', () => {
     const threads = true;
     await homework.getAnswers({ questionId, authorId, threads });
 
-    expect(getThreads).toHaveBeenCalledOnce();
+    expect(getThreads).toHaveBeenCalledTimes(1);
     expect(getThreads).toHaveBeenCalledWith(answersData);
     expect(homework.answers).toStrictEqual(threadsData);
   });
@@ -117,7 +113,7 @@ describe('homework store', () => {
     const threads = true;
     await homework.getAnswerById(answerId, threads);
 
-    expect(getAnswer).toHaveBeenCalledOnce();
+    expect(getAnswer).toHaveBeenCalledTimes(1);
     expect(getAnswer).toHaveBeenCalledWith(answerId);
   });
 
@@ -125,7 +121,7 @@ describe('homework store', () => {
     const threads = true;
     await homework.getAnswerById(answerId, threads);
 
-    expect(getThreads).toHaveBeenCalledOnce();
+    expect(getThreads).toHaveBeenCalledTimes(1);
     expect(getThreads).toHaveBeenCalledWith([answerData]);
     expect(homework.answers).toStrictEqual(threadsData);
   });
@@ -141,7 +137,7 @@ describe('homework store', () => {
   test('postAnswer calls api', async () => {
     await homework.postAnswer({ text, questionId, parentId });
 
-    expect(postAnswer).toHaveBeenCalledOnce();
+    expect(postAnswer).toHaveBeenCalledTimes(1);
     expect(postAnswer).toHaveBeenCalledWith({ text, questionId, parentId });
   });
 
@@ -154,7 +150,7 @@ describe('homework store', () => {
   test('postAnswer shows toast on success', async () => {
     await homework.postAnswer({ text, questionId, parentId });
 
-    expect(toasts.addMessage).toHaveBeenCalledOnce();
+    expect(toasts.addMessage).toHaveBeenCalledTimes(1);
   });
 
   test('postAnswer doesnt show toast on fail', async () => {
@@ -167,14 +163,14 @@ describe('homework store', () => {
   test('deleteAnswer calls api', async () => {
     await homework.deleteAnswer(answerId);
 
-    expect(deleteAnswer).toHaveBeenCalledOnce();
+    expect(deleteAnswer).toHaveBeenCalledTimes(1);
     expect(deleteAnswer).toHaveBeenCalledWith(answerId);
   });
 
   test('deleteAnswer shows toast on success', async () => {
     await homework.deleteAnswer(answerId);
 
-    expect(toasts.addMessage).toHaveBeenCalledOnce();
+    expect(toasts.addMessage).toHaveBeenCalledTimes(1);
   });
 
   test('deleteAnswer doesnt show toast on fail', async () => {
@@ -187,14 +183,14 @@ describe('homework store', () => {
   test('updateAnswer calls api', async () => {
     await homework.updateAnswer(answerId, text);
 
-    expect(updateAnswer).toHaveBeenCalledOnce();
+    expect(updateAnswer).toHaveBeenCalledTimes(1);
     expect(updateAnswer).toHaveBeenCalledWith(answerId, text);
   });
 
   test('updateAnswer shows toast on success', async () => {
     await homework.updateAnswer(answerId, text);
 
-    expect(toasts.addMessage).toHaveBeenCalledOnce();
+    expect(toasts.addMessage).toHaveBeenCalledTimes(1);
   });
 
   test('updateAnswer doesnt show toast on fail', async () => {

@@ -40,6 +40,10 @@
     max-width: 100%;
   }
 
+  .button {
+    @apply leading-[1.5] rounded bg-yellow p-module text-center text-black transition-colors hover:bg-yellow-hover disabled:opacity-25;
+  }
+
   .label {
     @apply mb-8 w-full text-gray;
   }
@@ -63,9 +67,19 @@
     @apply overflow-hidden rounded-8 bg-white shadow dark:bg-dark-gray;
   }
 
-  .secondary-action {
-    @apply text-black text-opacity-50 transition-colors hover:text-opacity-75;
-    @apply dark:text-white dark:text-opacity-50;
+  .answer-action,
+  .answer-action-base {
+    @apply rounded-8 text-dark-gray text-sub flex flex-col justify-center items-center px-16 py-4 box-content border border-offwhite cursor-pointer bg-offwhite transition-colors;
+  }
+
+  .answer-action,
+  .answer-action-hover {
+    @apply hover:bg-lightgray hover:border-lightgray;
+  }
+
+  .answer-action,
+  .answer-action-disabled {
+    @apply disabled:hover:bg-offwhite disabled:hover:border-offwhite disabled:opacity-50 disabled:cursor-not-allowed;
   }
 }
 

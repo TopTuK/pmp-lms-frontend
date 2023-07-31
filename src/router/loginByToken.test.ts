@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { describe, test, beforeEach, vi, expect } from 'vitest';
+
 import loginByToken from './loginByToken';
 import useAuth from '@/stores/auth';
 import type { RouteLocationNormalized } from 'vue-router';
@@ -7,7 +7,7 @@ import { createApp } from 'vue';
 import { createTestingPinia } from '@pinia/testing';
 import { setActivePinia } from 'pinia';
 
-const passwordlessToken = faker.datatype.uuid();
+const passwordlessToken = faker.string.uuid();
 
 const to: Partial<RouteLocationNormalized> = {
   params: {

@@ -1,5 +1,5 @@
 import onRequestFulfilled from './onRequestFulfilled';
-import { test, describe, vi, beforeEach, expect } from 'vitest';
+
 import requestCaseMiddleware from './requestCaseMiddleware';
 import type { AxiosRequestConfig } from 'axios';
 import { faker } from '@faker-js/faker';
@@ -39,7 +39,7 @@ describe('onRequestFulfilled', () => {
   });
 
   test('auth token added to request headers if exist', () => {
-    authStore.token = faker.datatype.uuid();
+    authStore.token = faker.string.uuid();
 
     const request = onRequestFulfilled(input, true);
 

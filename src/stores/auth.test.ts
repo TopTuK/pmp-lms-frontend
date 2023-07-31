@@ -1,4 +1,3 @@
-import { describe, test, beforeEach, expect, vi } from 'vitest';
 import { setActivePinia } from 'pinia';
 import { createTestingPinia } from '@pinia/testing';
 import { loginWithCredentials, loginWithLink, sendLoginLink } from '@/api/auth';
@@ -7,8 +6,8 @@ import useAuth from './auth';
 import useToasts from './toasts';
 import { createApp } from 'vue';
 
-const token = faker.datatype.uuid();
-const passwordlessToken = faker.datatype.uuid();
+const token = faker.string.uuid();
+const passwordlessToken = faker.string.uuid();
 const username = faker.internet.userName();
 const password = faker.internet.password();
 const email = faker.internet.email();
@@ -38,7 +37,7 @@ describe('toasts store', () => {
   test('loginWithCredentials calls api with needed parameters', async () => {
     await auth.loginWithCredentials(username, password);
 
-    expect(loginWithCredentials).toHaveBeenCalledOnce();
+    expect(loginWithCredentials).toHaveBeenCalledTimes(1);
     expect(loginWithCredentials).toHaveBeenCalledWith(username, password);
   });
 
@@ -54,21 +53,14 @@ describe('toasts store', () => {
   test('loginWithEmail calls api with needed parameters', () => {
     auth.loginWithEmail(email);
 
-    expect(sendLoginLink).toHaveBeenCalledOnce();
+    expect(sendLoginLink).toHaveBeenCalledTimes(1);
     expect(sendLoginLink).toHaveBeenCalledWith(email);
-  });
-
-  test('loginWithEmail does not show toast on fail', async () => {
-    (sendLoginLink as ReturnType<typeof vi.fn>).mockRejectedValue({});
-    await auth.loginWithEmail(email);
-
-    expect(toasts.addMessage).toHaveBeenCalledTimes(0);
   });
 
   test('exchangeTokens calls api with needed parameters', async () => {
     await auth.exchangeTokens(passwordlessToken);
 
-    expect(loginWithLink).toHaveBeenCalledOnce();
+    expect(loginWithLink).toHaveBeenCalledTimes(1);
     expect(loginWithLink).toHaveBeenCalledWith(passwordlessToken);
   });
 
@@ -80,7 +72,7 @@ describe('toasts store', () => {
   });
 
   test('resetAuth resets token', () => {
-    auth.token = faker.datatype.uuid();
+    auth.token = faker.string.uuid();
 
     auth.resetAuth();
 

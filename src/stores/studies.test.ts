@@ -1,8 +1,8 @@
-import { describe, test, beforeEach, expect, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import useStudies from './studies';
 import { getStudies } from '@/api/studies';
-import { getStudiesData } from '@/mocks/studies';
+import { mockStudy } from '@/mocks/mockStudy';
+import { faker } from '@faker-js/faker';
 
 vi.mock('@/api/studies', () => {
   return {
@@ -25,11 +25,11 @@ describe('studies store', () => {
   test('getData calls studies', async () => {
     await studies.getData();
 
-    expect(getStudies).toHaveBeenCalledOnce();
+    expect(getStudies).toHaveBeenCalledTimes(1);
   });
 
   test('getData sets items', async () => {
-    const studiesData = getStudiesData();
+    const studiesData = faker.helpers.multiple(mockStudy, { count: 3 });
     (getStudies as ReturnType<typeof vi.fn>).mockResolvedValue(studiesData);
 
     await studies.getData();

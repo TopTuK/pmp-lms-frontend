@@ -1,19 +1,24 @@
-import { describe, test, expect, vi } from 'vitest';
 import requestCaseMiddleware from './requestCaseMiddleware';
 import decamelizeKeys from 'decamelize-keys';
-import { camelCase, snakeCase } from '@/mocks/case';
-
-const data = camelCase;
+import {
+  STATIC_CAMEL_CASE_EXAMPLE,
+  STATIC_SNAKE_CASE_EXAMPLE,
+} from '@/mocks/mockCase';
 
 vi.mock('decamelize-keys');
 
+const data = STATIC_CAMEL_CASE_EXAMPLE;
+
 describe('requestCaseMiddleware', () => {
   test('run decamelizeKeys when enabled', () => {
+    (decamelizeKeys as ReturnType<typeof vi.fn>).mockReturnValue(
+      STATIC_SNAKE_CASE_EXAMPLE,
+    );
     const result = requestCaseMiddleware(data, true);
 
-    expect(decamelizeKeys).toHaveBeenCalledOnce();
+    expect(decamelizeKeys).toHaveBeenCalledTimes(1);
     expect(decamelizeKeys).toHaveBeenCalledWith(data, { deep: true });
-    expect(result).toStrictEqual(snakeCase);
+    expect(result).toStrictEqual(decamelizeKeys(data));
   });
 
   test('dont run decamelizeKeys when not enabled', () => {

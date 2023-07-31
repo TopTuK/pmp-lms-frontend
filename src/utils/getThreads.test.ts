@@ -1,21 +1,16 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { getComments } from '@/api/homework';
-import {
-  getAnswersData,
-  getCommentsData,
-  getThreadData,
-} from '@/mocks/homework';
 import { faker } from '@faker-js/faker';
 import getThreads from './getThreads';
 import getCommentsBySlug from '@/utils/getCommentsBySlug';
 import { flushPromises } from '@vue/test-utils';
+import { mockAnswer } from '@/mocks/mockAnswer';
+import { mockThread } from '@/mocks/mockThread';
+import { mockComments } from '@/mocks/mockComments';
+import { mockComment } from '@/mocks/mockComment';
 
-const n = faker.datatype.number({
-  min: 3,
-  max: 10,
+const answers = faker.helpers.multiple(mockAnswer, {
+  count: { min: 3, max: 10 },
 });
-
-const answers = getAnswersData(n);
 
 vi.mock('@/api/homework', () => {
   return {
@@ -33,7 +28,7 @@ describe('getThreads', () => {
   test('call getComments with answer ids', () => {
     getThreads(answers);
 
-    expect(getComments).toHaveBeenCalledOnce();
+    expect(getComments).toHaveBeenCalledTimes(1);
     expect(getComments).toHaveBeenCalledWith(
       answers.map((answer) => answer.slug),
     );
@@ -52,7 +47,9 @@ describe('getThreads', () => {
   });
 
   test('return threads', async () => {
-    const comments = getCommentsData(getThreadData()).descendants;
+    const comments = mockComments([
+      mockComment(mockThread(mockAnswer())),
+    ]).descendants;
     (getCommentsBySlug as ReturnType<typeof vi.fn>).mockReturnValue(comments);
 
     expect(await getThreads(answers)).toHaveLength(answers.length);

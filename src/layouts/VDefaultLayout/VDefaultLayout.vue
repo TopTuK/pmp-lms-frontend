@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-  import { VProfileMenu } from '@/components/VProfileMenu';
-  import { VPreloader } from '@/components/VPreloader';
-  import { VToastFeed } from '@/components/VToastFeed';
+  import VProfileMenu from '@/components/VProfileMenu/VProfileMenu.vue';
+  import VPreloader from '@/components/VPreloader/VPreloader.vue';
+  import VToastFeed from '@/components/VToastFeed/VToastFeed.vue';
   import { useRoute } from 'vue-router';
   import { computed } from 'vue';
   import useLoading from '@/stores/loading';
@@ -15,7 +15,7 @@
 </script>
 
 <template>
-  <main class="container pb-128" v-if="!loading.isLoading">
+  <main v-if="!loading.isLoading" class="container pb-128">
     <header
       class="flex flex-wrap justify-between items-center pt-16 pb-24 tablet:pb-64 gap-8">
       <RouterLink to="/">

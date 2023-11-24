@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-  import { VHeading } from '@/components/VHeading';
-  import { VCard } from '@/components/VCard';
+  import VHeading from '@/components/VHeading/VHeading.vue';
+  import VCard from '@/components/VCard/VCard.vue';
   import { useRoute } from 'vue-router';
   import { computed } from 'vue';
   import { useChatra } from '@/hooks/useChatra';
@@ -27,10 +27,10 @@
     </div>
     <template #footer>
       <a
+        v-if="emailProvider"
         class="flex-grow button"
         data-testid="open"
         :href="emailProvider.url"
-        v-if="emailProvider"
         >Открыть {{ emailProvider.label }}</a
       >
     </template>

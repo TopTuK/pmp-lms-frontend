@@ -1,21 +1,24 @@
 <script lang="ts">
+  import { ReactionEmoji } from '@/types/homework';
+
   export interface VReactionsProps {
     answerId: string;
     reactions: Reaction[];
     open?: boolean;
     disabled?: boolean;
   }
+
+  export const ALLOWED_REACTIONS = Object.values(ReactionEmoji);
+  export const MAX_REACTIONS = 3;
 </script>
 
 <script lang="ts" setup>
   import { computed, watch, ref, onMounted } from 'vue';
-  import { VReaction } from './components/VReaction';
-  import type { Reaction, ReactionEmoji } from '@/types/homework';
-  import { groupBy } from 'lodash';
+  import VReaction from './components/VReaction/VReaction.vue';
+  import type { Reaction } from '@/types/homework';
+  import { groupBy, debounce } from 'lodash-es';
   import useUser from '@/stores/user';
-  import { ALLOWED_REACTIONS, MAX_REACTIONS } from '.';
   import { uuid } from '@/utils/uuid';
-  import debounce from 'lodash/debounce';
 
   const props = withDefaults(defineProps<VReactionsProps>(), {
     open: false,
@@ -126,9 +129,9 @@
     :key="emoji"
     :disabled="isDisabled(groupedReactions[emoji])"
     :emoji="emoji"
-    :userId="userStore.uuid"
+    :user-id="userStore.uuid"
     :reactions="groupedReactions[emoji]"
+    data-testid="reaction"
     @add="handleAdd"
-    @remove="handleRemove"
-    data-testid="reaction" />
+    @remove="handleRemove" />
 </template>

@@ -11,7 +11,7 @@ import 'floating-vue/dist/style.css';
 import * as Sentry from '@sentry/vue';
 
 import './fonts.css';
-import './tailwind.css';
+import './style.css';
 
 const app = createApp(App);
 
@@ -31,8 +31,8 @@ if (process.env.NODE_ENV === 'production') {
       /^https:\/\/lms\.tough-dev\.school\/api\//,
       /^http:\/\/127\.0\.0\.1:8000\//,
     ],
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0.8,
   });
 }
 

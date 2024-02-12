@@ -1,7 +1,9 @@
-const spacing = (base, limit, unit = 'px') => {
-  const output = {};
+const spacing = (base: number, limit: number, unit = 'px') => {
+  const output: {
+    [key: string]: string;
+  } = {};
   let n = 1;
-  let value;
+  let value: number;
 
   do {
     value = base * n;
@@ -22,15 +24,9 @@ module.exports = {
       body: ['PT Root UI', 'sans-serif'],
     },
     screens: {
+      se: '370px',
       phone: '560px',
       tablet: '768px',
-    },
-    container: {
-      center: true,
-      padding: {
-        DEFAULT: '8px',
-        tablet: '16px',
-      },
     },
     colors: {
       offwhite: { DEFAULT: '#faf9f8' },

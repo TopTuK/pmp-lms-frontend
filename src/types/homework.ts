@@ -13,6 +13,7 @@ export interface Author {
   uuid: string;
   firstName: string;
   lastName: string;
+  avatar?: string;
 }
 
 export interface Reaction {
@@ -54,4 +55,14 @@ export interface Question {
 export interface Comments {
   slug: string;
   descendants: Comment[];
+}
+
+export interface CrossCheckAnswer {
+  author: Author;
+  url: string;
+}
+
+export interface CrossCheck {
+  isChecked: boolean;
+  answer: CrossCheckAnswer;
 }

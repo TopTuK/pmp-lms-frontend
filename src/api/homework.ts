@@ -6,6 +6,7 @@ import type {
   Comment,
   Reaction,
   ReactionEmoji,
+  CrossCheck,
 } from '@/types/homework';
 import htmlToMarkdown from '@/utils/htmlToMarkdown';
 
@@ -86,7 +87,9 @@ export const deleteAnswer = async (answerId: string) => {
 export const updateAnswer = async (answerId: string, text: string) => {
   const url = `/api/v2/homework/answers/${answerId}/`;
 
-  await axios.patch(url, { text: htmlToMarkdown(text) });
+  return (await axios.patch(url, { text: htmlToMarkdown(text) })).data as
+    | Answer
+    | Comment;
 };
 
 export const sendImage = async (file: File) => {
@@ -120,4 +123,10 @@ export const removeReaction = async (answerId: string, reactionId: string) => {
   const url = `/api/v2/homework/answers/${answerId}/reactions/${reactionId}/`;
 
   await axios.delete(url);
+};
+
+export const getCrossChecks = async (questionId: string) => {
+  const url = `/api/v2/homework/crosschecks/?question=${questionId}`;
+
+  return (await axios.get(url)).data as CrossCheck[];
 };

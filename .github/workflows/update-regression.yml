@@ -1,0 +1,36 @@
+name: Update regression tests snapshots
+on: workflow_dispatch
+
+jobs:
+  regression:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout 🛎
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install playwright browsers
+        run: pnpm playwright install
+
+      - name: Run regression tests
+        run: pnpm run test:regression:update
+
+      - name: Saving screenshots 📥
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-screenshots
+          path: tests/__image_snapshots__/
+          retention-days: 14

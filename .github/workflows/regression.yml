@@ -3,7 +3,7 @@ on: [push]
 
 jobs:
   regression:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Checkout 🛎
@@ -22,16 +22,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Install playwright browsers 😈
-        run: npx playwright install
+      - name: Install playwright browsers
+        run: pnpm playwright install
 
-      - name: Run visual tests for light mode 🌞
-        run: pnpm run test:visual
+      - name: Run visual regression tests
+        run: pnpm run test:regression
 
-      - name: Saving test results 📥
+      - name: Saving diffs 📥
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: diff
-          path: src/__image_snapshots__/__diff_output__
+          path: tests/__image_snapshots__/__diff_output__
+          retention-days: 14
+
+      - name: Saving failure 📥
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: received
+          path: tests/__image_snapshots__/__received_output__
           retention-days: 14

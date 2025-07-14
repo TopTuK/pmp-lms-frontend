@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --module: 52px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --module: 48px;
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-offwhite font-body text-black dark:bg-darkmode-layer1 dark:text-white min-h-screen;
+  }
+}
+
+@layer components {
+  .prose {
+    @apply prose-p:my-[0.5em];
+    @apply prose-li:my-[0.25em];
+    @apply prose-ol:my-[0.5em];
+    @apply prose-ul:my-[0.5em];
+    @apply prose-h1:mt-[1em];
+    @apply prose-h2:mt-[1.5em];
+    @apply !text-[inherit];
+    --tw-prose-bullets: inherit;
+    --tw-prose-counters: inherit;
+    max-width: 100%;
+  }
+
+  .prose * {
+    @apply !text-[inherit];
+  }
+
+  .prose li > p {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  .label {
+    @apply mb-8 w-full text-gray;
+  }
+
+  .link-bright {
+    @apply border-blue text-blue opacity-100 transition-colors;
+  }
+
+  .link,
+  .group-link {
+    @apply link-bright;
+    @apply dark:border-darkmode-blue dark:text-darkmode-blue dark:opacity-100;
+  }
+
+  .link {
+    @apply hover:border-red hover:text-red;
+    @apply dark:hover:border-darkmode-red dark:hover:text-darkmode-red;
+  }
+
+  .group-link {
+    @apply group-hover:border-red group-hover:text-red;
+    @apply dark:hover:border-darkmode-red dark:hover:text-darkmode-red;
+  }
+
+  .float-card,
+  .v-popper--theme-dropdown .v-popper__inner.v-popper__inner {
+    @apply overflow-hidden rounded-8 bg-white dark:bg-darkmode-layer2 shadow;
+  }
+
+  .container-fluid {
+    @apply px-16 max-w-[720px] mx-auto;
+  }
+
+  .card {
+    @apply bg-yellow rounded-16 p-16 text-black;
+  }
+}
+
+@layer utilities {
+  .center {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .visually-hidden {
+    @apply absolute h-0 w-0 overflow-hidden;
+  }
+}

@@ -1,0 +1,10 @@
+* @brachkow
+.* @brachkow
+!apps/frontend/docker-compose.yml @brachkow
+!apps/frontend/Dockerfile @brachkow
+
+.github/workflows/ci.yml @f213
+apps/frontend/docker-compose.yml @f213
+apps/frontend/Dockerfile @f213
+apps/frontend/src/api/* @f213
+apps/frontend/src/axios/* @f213

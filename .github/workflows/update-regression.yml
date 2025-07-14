@@ -3,15 +3,13 @@ on: workflow_dispatch
 
 jobs:
   regression:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout 🛎
         uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v3
-        with:
-          version: 9
 
       - name: Use Node.js
         uses: actions/setup-node@v4
@@ -21,16 +19,27 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+        working-directory: apps/frontend
 
       - name: Install playwright browsers
-        run: pnpm playwright install
+        run: pnpm playwright install chromium
+        working-directory: apps/frontend
+
+      - name: Build storybook
+        run: pnpm run storybook:build
+        working-directory: apps/frontend
+
+      - name: Run storybook
+        run: pnpm run storybook:preview &
+        working-directory: apps/frontend
 
       - name: Run regression tests
         run: pnpm run test:regression:update
+        working-directory: apps/frontend
 
       - name: Saving screenshots 📥
         uses: actions/upload-artifact@v4
         with:
           name: updated-screenshots
-          path: tests/__image_snapshots__/
+          path: apps/frontend/tests/__image_snapshots__/
           retention-days: 14

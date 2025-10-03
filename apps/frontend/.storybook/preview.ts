@@ -1,10 +1,9 @@
-import '../src/fonts.css';
 import '../src/style.css';
 import { setup } from '@storybook/vue3-vite';
-import FloatingVue from 'floating-vue';
-import 'floating-vue/dist/style.css';
 import { VueQueryPlugin } from '@tanstack/vue-query';
-import { vueQueryConfig } from '../src/main';
+import { queryClient } from '../src/queryClient';
+import { createRouter, createWebHistory } from 'vue-router';
+import { routes } from '../src/router';
 import type { Preview } from '@storybook/vue3-vite';
 
 const preview: Preview = {
@@ -45,8 +44,17 @@ const preview: Preview = {
 };
 
 setup((app) => {
-  app.use(FloatingVue);
-  app.use(VueQueryPlugin, vueQueryConfig);
+  app.use(VueQueryPlugin, {
+    queryClient,
+  });
+
+  // Create a router instance for Storybook without navigation guards
+  const router = createRouter({
+    history: createWebHistory(),
+    routes,
+  });
+
+  app.use(router);
 });
 
 export default preview;

@@ -2,28 +2,29 @@
   import VHeading from '@/components/VHeading/VHeading.vue';
   import VThread from '@/components/VThread';
   import VFeedbackGuide from '@/components/VFeedbackGuide/VFeedbackGuide.vue';
-  import VHtmlContent from '@/components/VHtmlContent/VHtmlContent.vue';
   import VCrossChecks from '@/components/VCrossChecks/VCrossChecks.vue';
   import VDetails from '@/components/VDetails/VDetails.vue';
   import VCreateAnswer from '@/components/VCreateAnswer/VCreateAnswer.vue';
-  import { useStorage } from '@vueuse/core';
+  import { useEditorAutosave } from '@/composables/useEditorAutosave';
   import VExistingAnswer from '@/components/VExistingAnswer';
-  import { useHomeworkCrosschecksQuery } from '@/query';
-  import { computed } from 'vue';
-  import { useRouter } from 'vue-router';
-  import { useQueryClient } from '@tanstack/vue-query';
-  import { useHomeworkAnswerCreateMutation } from '@/query';
-  import VLoggedLayout from '@/layouts/VLoggedLayout/VLoggedLayout.vue';
-  import VPillHomework from '@/components/VPillHomework/VPillHomework.vue';
-  import { useHomeworkBreadcrumbs } from './useHomeworkBreadcrumbs';
   import {
+    useHomeworkCrosschecksQuery,
+    useHomeworkAnswerCreateMutation,
     useHomeworkQuestionQuery,
-    useLessonsQuery,
     useHomeworkAnswerQuery,
     useUserQuery,
     populateAnswersCacheFromDescendants,
+    useLessonQuery,
   } from '@/query';
-  import { watch } from 'vue';
+  import { computed, watch } from 'vue';
+  import { useRouter } from 'vue-router';
+  import { useQueryClient } from '@tanstack/vue-query';
+  import VLoggedLayout from '@/layouts/VLoggedLayout/VLoggedLayout.vue';
+  import VPillHomework from '@/components/VPillHomework/VPillHomework.vue';
+  import { useHomeworkBreadcrumbs } from './useHomeworkBreadcrumbs';
+  import VLoadingView from '@/views/VLoadingView/VLoadingView.vue';
+  import { getEmptyContent } from '@/utils/tiptap';
+  import VMakrdownContent from '@/components/VMakrdownContent/VMakrdownContent.vue';
 
   const props = defineProps<{
     questionId: string;
@@ -39,15 +40,9 @@
     () => props.answerId,
   );
 
-  const { data: lessons, isLoading: isLessonsLoading } = useLessonsQuery(
-    question.value?.breadcrumbs.module.id,
+  const { data: lesson, isLoading: isLessonLoading } = useLessonQuery(
+    () => question.value?.breadcrumbs.lesson?.id,
   );
-
-  const lesson = computed(() => {
-    return lessons.value?.find(
-      (lesson) => lesson.id === question.value?.breadcrumbs.lesson?.id,
-    );
-  });
 
   const { data: user, isLoading: isUserLoading } = useUserQuery();
 
@@ -75,25 +70,25 @@
     return undefined;
   });
 
-  const commentText = useStorage(
-    ['commentText', props.questionId, props.answerId].filter(Boolean).join('-'),
-    '',
-    localStorage,
-  );
+  const { content } = useEditorAutosave([
+    'commentText',
+    props.questionId,
+    props.answerId,
+  ]);
 
   const handleCreateComment = async () => {
     try {
-      const answer = await createAnswerMutation({
-        text: commentText.value,
+      const createdAnswer = await createAnswerMutation({
+        content: content.value,
         questionId: props.questionId,
         parentId: props.answerId,
       });
 
-      commentText.value = '';
+      content.value = getEmptyContent();
 
       router.push({
         ...router.currentRoute.value,
-        hash: `#${answer.slug}`,
+        hash: `#${createdAnswer.slug}`,
       });
     } catch (error) {
       console.error(error);
@@ -162,7 +157,7 @@
       !(
         isQuestionLoading &&
         isAnswerLoading &&
-        isLessonsLoading &&
+        isLessonLoading &&
         isUserLoading
       ) &&
       question &&
@@ -175,7 +170,7 @@
     <template #pill>
       <VPillHomework v-if="lesson.homework" :stats="lesson.homework" />
     </template>
-    <section class="flex flex-col gap-24">
+    <section class="VHomeworkAnswerView__Section -mt-16">
       <div v-if="isOwnAnswer" class="card mb-16 bg-accent-green">
         <VHeading tag="h3" class="mb-8">
           Поделитесь ссылкой на сделанную домашку
@@ -186,39 +181,54 @@
       </div>
       <VDetails>
         <template #summary> Текст задания </template>
-        <VHtmlContent :content="question.text" />
+        <VMakrdownContent :markdown="question.markdown_text" />
       </VDetails>
+    </section>
+    <section class="VHomeworkAnswerView__Section">
+      <VHeading tag="h2"> Отправленная работа</VHeading>
       <VExistingAnswer
         :answer-id="answer.slug"
         @after-delete="handleDeleteAnswer" />
     </section>
-    <VCrossChecks
-      v-if="isOwnAnswer && crosschecks?.length"
-      :crosschecks="crosschecks" />
-    <section class="flex flex-col gap-24">
+    <section>
+      <VCrossChecks
+        v-if="isOwnAnswer && crosschecks?.length"
+        :crosschecks="crosschecks" />
+    </section>
+    <section class="VHomeworkAnswerView__Section">
       <VHeading tag="h2">
-        {{ isOwnAnswer ? 'Коментарии вашей работы' : 'Коментарии' }}
+        {{ isOwnAnswer ? 'Комментарии вашей работы' : 'Комментарии' }}
       </VHeading>
       <p v-if="isOwnAnswer && feedbackMessage">
         {{ feedbackMessage }}
       </p>
-      <VFeedbackGuide />
-
-      <VCreateAnswer
-        v-model="commentText"
-        :is-pending="isCreateAnswerPending"
-        @send="handleCreateComment" />
-      <div v-if="isSent" class="card">
-        Ответ отправлен!
-        <a class="link" :href="ownAnswerHref">Вернуться к своему ответу</a>
-      </div>
       <template v-if="answer.descendants">
         <VThread
           v-for="comment in answer.descendants"
           :key="comment.slug"
           :answer-id="comment.slug" />
       </template>
+      <VFeedbackGuide
+        v-if="question.course?.homework_check_recommendations"
+        :guide="question.course.homework_check_recommendations" />
+
+      <VCreateAnswer
+        v-model="content"
+        :is-pending="isCreateAnswerPending"
+        @send="handleCreateComment" />
+      <div v-if="isSent" class="card">
+        Ответ отправлен!
+        <a class="link" :href="ownAnswerHref">Вернуться к своему ответу</a>
+      </div>
     </section>
   </VLoggedLayout>
   <VLoadingView v-else />
 </template>
+
+<style scoped>
+  .VHomeworkAnswerView {
+    &__Section {
+      @apply flex flex-col gap-24;
+    }
+  }
+</style>

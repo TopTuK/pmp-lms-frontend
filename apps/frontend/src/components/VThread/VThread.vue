@@ -8,16 +8,18 @@
 </script>
 
 <script lang="ts" setup>
+  /* eslint-disable import-x/first */
   import VAnswer from '@/components/VAnswer';
-  import { ref } from 'vue';
+  import { ref, useTemplateRef } from 'vue';
   import { onClickOutside } from '@vueuse/core';
   import { useRoute, useRouter } from 'vue-router';
   import { useHomeworkAnswerCreateMutation } from '@/query';
   import { useQueryClient } from '@tanstack/vue-query';
-  import { useStorage } from '@vueuse/core';
   import VCreateAnswer from '@/components/VCreateAnswer/VCreateAnswer.vue';
   import VExistingAnswer from '@/components/VExistingAnswer';
   import type { AnswerTree, User } from '@/api/generated-api';
+  import { useEditorAutosave } from '@/composables/useEditorAutosave';
+  import { getEmptyContent } from '@/utils/tiptap';
   import VThreadProvider from '.';
 
   const props = defineProps<{
@@ -42,7 +44,7 @@
     prepareForScroll(slug);
   };
 
-  const target = ref<HTMLElement | null>(null);
+  const target = useTemplateRef('target');
 
   onClickOutside(target, () => {
     replyMode.value = false;
@@ -51,18 +53,12 @@
   const { mutateAsync: createComment, isPending: isCreateCommentPending } =
     useHomeworkAnswerCreateMutation(queryClient);
 
-  const commentText = useStorage(
-    [
-      'commentText',
-      props.answer.question,
-      props.answer.slug,
-      props.answer.parent,
-    ]
-      .filter(Boolean)
-      .join('-'),
-    '',
-    localStorage,
-  );
+  const { content } = useEditorAutosave([
+    'commentText',
+    props.answer.question,
+    props.answer.slug,
+    props.answer.parent,
+  ]);
 
   const handleCreateComment = async () => {
     if (!props.answer) throw new Error('Answer not found');
@@ -71,10 +67,10 @@
       const newComment = await createComment({
         questionId: props.answer.question,
         parentId: props.answer.slug,
-        text: commentText.value,
+        content: content.value,
       });
 
-      commentText.value = '';
+      content.value = getEmptyContent();
 
       replyMode.value = false;
 
@@ -83,7 +79,7 @@
         hash: `#${newComment.slug}`,
       });
     } catch (error) {
-      console.log(error);
+      console.warn(error);
     }
   };
 
@@ -107,7 +103,7 @@
     <div class="thread-ruler" :class="{ 'mt-16': replyMode }">
       <VCreateAnswer
         v-show="replyMode"
-        v-model="commentText"
+        v-model="content"
         :is-pending="isCreateCommentPending"
         @send="handleCreateComment" />
     </div>

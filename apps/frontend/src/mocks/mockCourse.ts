@@ -1,4 +1,4 @@
-import { type Course } from '@/api/generated-api';
+import type { Course } from '@/api/generated-api';
 import { faker } from '@faker-js/faker';
 
 export const mockCourse = (payload: Partial<Course> = {}): Required<Course> => {
@@ -6,7 +6,9 @@ export const mockCourse = (payload: Partial<Course> = {}): Required<Course> => {
     cover: faker.image.url(),
     id: faker.number.int(),
     slug: faker.string.uuid(),
-    name: faker.finance.accountName(),
+    name: faker.commerce.productName(),
+    tariff_name: faker.finance.accountName(),
+    product_name: faker.finance.accountName(),
     chat: faker.internet.url(),
     calendar_ios: faker.internet.url(),
     calendar_google: faker.internet.url(),

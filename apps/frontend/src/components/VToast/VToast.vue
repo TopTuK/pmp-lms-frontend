@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-  import { onMounted, onUnmounted, withDefaults } from 'vue';
+  import { onMounted, onUnmounted } from 'vue';
 
   export type ToastTypes = 'error' | 'success';
 
   export interface Props {
-    text: string;
+    text?: string;
     id: string;
     lifetime: number;
     type?: ToastTypes;

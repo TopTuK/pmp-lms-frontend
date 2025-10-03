@@ -1,14 +1,22 @@
-import { QueryClient, useMutation, useQuery } from '@tanstack/vue-query';
+import {
+  QueryClient,
+  useMutation,
+  useQuery,
+  queryOptions,
+} from '@tanstack/vue-query';
 import type { MaybeRefOrGetter } from 'vue';
-import { computed } from 'vue';
-import { toValue } from 'vue';
+import { computed, toValue } from 'vue';
 import { api } from '@/api';
-import { queryOptions } from '@tanstack/vue-query';
-import type { AnswerTree } from './api/generated-api';
-import htmlToMarkdown from './utils/htmlToMarkdown';
+import type {
+  AnswerTree,
+  JSONWebToken,
+  PasswordChange,
+  PasswordReset,
+  PasswordResetConfirm,
+  PatchedUser,
+} from './api/generated-api';
 import { ContentType } from './api/generated-api';
-import type { PatchedUser } from './api/generated-api';
-import { useAuth } from './stores/auth';
+import { useAuth } from './composables/useAuth';
 
 export const baseQueryKey = () => {
   const { token } = useAuth();
@@ -24,6 +32,7 @@ export const studiesKeys = {
 export const lmsKeys = {
   all: () => [...baseQueryKey(), 'lms'],
   lessons: () => [...lmsKeys.all(), 'lessons'],
+  lesson: (lessonId?: number) => [...lmsKeys.lessons(), { lessonId }],
   moduleLessons: (moduleId?: number) => [...lmsKeys.lessons(), { moduleId }],
   modules: () => [...lmsKeys.all(), 'modules'],
   module: (moduleId: number) => [...lmsKeys.modules(), { moduleId }],
@@ -68,8 +77,11 @@ export const userKeys = {
 const studiesOptions = () => {
   return {
     queryKey: studiesKeys.lists(),
-    queryFn: async () =>
-      (await api.purchasedCoursesList({ page_size: 100 })).results,
+    queryFn: async () => {
+      const { results } = await api.purchasedCoursesList({ page_size: 100 });
+
+      return results;
+    },
   };
 };
 
@@ -82,8 +94,14 @@ export const useStudiesQuery = () => {
 const lessonsOptions = (moduleId: number | undefined) => {
   return {
     queryKey: lmsKeys.moduleLessons(moduleId),
-    queryFn: async () =>
-      (await api.lmsLessonsList({ module: moduleId, page_size: 1000 })).results,
+    queryFn: async () => {
+      const { results } = await api.lmsLessonsList({
+        module: moduleId,
+        page_size: 1000,
+      });
+
+      return results;
+    },
   };
 };
 
@@ -95,11 +113,38 @@ export const useLessonsQuery = (
   return useQuery(options);
 };
 
+const lessonOptions = (lessonId?: number) => {
+  return {
+    queryKey: lmsKeys.lesson(lessonId),
+    queryFn: async () => lessonId && (await api.lmsLessonsRetrieve(lessonId)),
+    enabled: lessonId !== undefined,
+  };
+};
+
+export const useLessonQuery = (
+  lessonId: MaybeRefOrGetter<number | undefined>,
+) => {
+  const options = computed(() => lessonOptions(toValue(lessonId)));
+
+  return useQuery(options);
+};
+
+export const fetchLesson = async (
+  queryClient: QueryClient,
+  { lessonId }: { lessonId: number },
+) => queryClient.fetchQuery(lessonOptions(lessonId));
+
 const modulesOptions = (courseId: number | undefined) => {
   return {
     queryKey: lmsKeys.courseModules(courseId),
-    queryFn: async () =>
-      (await api.lmsModulesList({ course: courseId, page_size: 100 })).results,
+    queryFn: async () => {
+      const { results } = await api.lmsModulesList({
+        course: courseId,
+        page_size: 100,
+      });
+
+      return results;
+    },
   };
 };
 
@@ -160,7 +205,11 @@ export const diplomasKeys = {
 const diplomasOptions = () => {
   return {
     queryKey: diplomasKeys.lists(),
-    queryFn: async () => (await api.diplomasList({ page_size: 100 })).results,
+    queryFn: async () => {
+      const { results } = await api.diplomasList({ page_size: 100 });
+
+      return results;
+    },
   };
 };
 
@@ -240,13 +289,14 @@ export const getHomeworkAnswersQueryOptions = ({
 }) => {
   return queryOptions({
     queryKey: homeworkKeys.questionAnswers({ questionId, authorId }),
-    queryFn: async () =>
-      (
-        await api.homeworkAnswersList({
-          question: questionId,
-          author: authorId,
-        })
-      ).results,
+    queryFn: async () => {
+      const { results } = await api.homeworkAnswersList({
+        question: questionId,
+        author: authorId,
+      });
+
+      return results;
+    },
   });
 };
 
@@ -333,16 +383,16 @@ export const useHomeworkCrosschecksQuery = (
 export const useHomeworkAnswerCreateMutation = (queryClient: QueryClient) => {
   return useMutation({
     mutationFn: async ({
-      text,
+      content,
       questionId,
       parentId,
     }: {
-      text: string;
+      content: string | object;
       questionId: string;
       parentId?: string;
     }) => {
       return await api.homeworkAnswersCreate({
-        text: htmlToMarkdown(text),
+        content,
         question: questionId,
         parent: parentId,
       });
@@ -365,13 +415,13 @@ export const useHomeworkAnswerUpdateMutation = (queryClient: QueryClient) => {
   return useMutation({
     mutationFn: async ({
       answerId,
-      text,
+      content,
     }: {
       answerId: string;
-      text: string;
+      content: string | object;
     }) =>
       await api.homeworkAnswersPartialUpdate(answerId, {
-        text: htmlToMarkdown(text),
+        content,
       }),
     onSuccess: (_, { answerId }) => {
       queryClient.invalidateQueries({
@@ -411,7 +461,7 @@ export const useHomeworkAnswerSendImageMutation = () => {
       const formData = new FormData();
       formData.append('image', image);
 
-      // @ts-expect-error
+      // @ts-expect-error too complex
       return await api.homeworkAnswersImageCreate(formData, {
         type: ContentType.FormData,
       });
@@ -455,13 +505,81 @@ export const useUpdateUserAvatarMutation = (queryClient: QueryClient) => {
         formData.append('avatar', '');
       }
 
-      // @ts-expect-error
+      // @ts-expect-error too complex
       return await api.usersMePartialUpdate(formData, {
         type: ContentType.FormData,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.all() });
+    },
+  });
+};
+
+export const useLoginWithCredentialsMutation = (queryClient: QueryClient) => {
+  return useMutation({
+    mutationFn: async (data: JSONWebToken) => await api.authTokenCreate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: baseQueryKey() });
+    },
+  });
+};
+
+export const useLoginWithUserIdMutation = (queryClient: QueryClient) => {
+  return useMutation({
+    mutationFn: async (userId: number) => await api.authAsRetrieve(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: baseQueryKey() });
+    },
+  });
+};
+
+export const useLoginWithLinkMutation = (queryClient: QueryClient) => {
+  return useMutation({
+    mutationFn: async ({ email }: { email: string }) =>
+      await api.authPasswordlessTokenRequestRetrieve(email),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: baseQueryKey() });
+    },
+  });
+};
+
+export const useExchangeTokensMutation = (queryClient: QueryClient) => {
+  return useMutation({
+    mutationFn: async ({ token }: { token: string }) =>
+      await api.authPasswordlessTokenRetrieve(token),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: baseQueryKey() });
+    },
+  });
+};
+
+export const useRequestPasswordResetMutation = (queryClient: QueryClient) => {
+  return useMutation({
+    mutationFn: async (data: PasswordReset) =>
+      await api.authPasswordResetCreate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: baseQueryKey() });
+    },
+  });
+};
+
+export const useConfirmPasswordResetMutation = (queryClient: QueryClient) => {
+  return useMutation({
+    mutationFn: async (data: PasswordResetConfirm) =>
+      await api.authPasswordResetConfirmCreate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: baseQueryKey() });
+    },
+  });
+};
+
+export const usePasswordChangeMutation = (queryClient: QueryClient) => {
+  return useMutation({
+    mutationFn: async (data: PasswordChange) =>
+      await api.authPasswordChangeCreate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: baseQueryKey() });
     },
   });
 };

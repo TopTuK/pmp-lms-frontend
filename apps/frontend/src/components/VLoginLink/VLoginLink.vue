@@ -3,21 +3,24 @@
   import VCard from '@/components/VCard/VCard.vue';
   import VTextInput from '@/components/VTextInput/VTextInput.vue';
   import { ref } from 'vue';
-  import { useAuth } from '@/stores/auth';
   import { useRouter } from 'vue-router';
+  import { useQueryClient } from '@tanstack/vue-query';
+  import { useLoginWithLinkMutation } from '@/query';
 
-  const { loginWithEmail } = useAuth();
   const router = useRouter();
-
+  const queryClient = useQueryClient();
   const email = ref('');
   const isPending = ref(false);
+
+  const { mutateAsync: loginWithLink } = useLoginWithLinkMutation(queryClient);
 
   const handleLogin = async () => {
     try {
       isPending.value = true;
-      await loginWithEmail(email.value);
+      await loginWithLink({ email: email.value });
+
       router.push({ name: 'mail-sent', query: { email: email.value } });
-    } catch (e) {
+    } catch {
       console.error('Failed to login with email');
     }
     isPending.value = false;
@@ -27,10 +30,10 @@
 </script>
 
 <template>
-  <VCard tag="form" title="Вход и регистрация" @submit.prevent="handleLogin">
+  <VCard tag="form" title="Вход" @submit.prevent="handleLogin">
     <VTextInput
       v-model="email"
-      label="Электронная почта"
+      label="Почта, на которую купили курс"
       tip="Мы отправим ссылку для входа по этому адресу"
       type="email"
       autocomplete="username" />

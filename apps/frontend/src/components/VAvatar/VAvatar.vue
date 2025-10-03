@@ -1,9 +1,10 @@
 <script lang="ts" setup>
+  import { getCrossOriginImgAttrs } from '@/utils/getCrossOriginImageAttributes';
   import { minidenticon } from 'minidenticons';
   import { computed } from 'vue';
 
   export interface Props {
-    userId: string;
+    userId?: string;
     image?: string | null;
     size?: 'sm' | 'md';
   }
@@ -33,7 +34,7 @@
       'w-72': size === 'md',
     }"
     class="flex items-center justify-center rounded-full object-cover"
-    :src="image || defaultAvatar" />
+    v-bind="getCrossOriginImgAttrs(image || defaultAvatar)" />
 </template>
 
 <style scoped>

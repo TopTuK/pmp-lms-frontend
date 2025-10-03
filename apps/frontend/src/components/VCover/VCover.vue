@@ -1,5 +1,6 @@
 <script lang="ts" setup>
   import VHeading from '@/components/VHeading/VHeading.vue';
+  import { getCrossOriginImgAttrs } from '@/utils/getCrossOriginImageAttributes';
   import { computed } from 'vue';
 
   export interface Props {
@@ -10,9 +11,7 @@
   const props = defineProps<Props>();
 
   const clearName = computed(() => {
-    const additionalInfoStart = props.name
-      .split('')
-      .findIndex((item) => item === '(');
+    const additionalInfoStart = [...props.name].indexOf('(');
 
     if (additionalInfoStart > 0) {
       return props.name.slice(0, additionalInfoStart).trim();
@@ -31,15 +30,16 @@
         <VHeading
           tag="div"
           class="text-center text-h1 text-white"
-          data-testid="auto-cover"
-          >{{ clearName }}</VHeading
-        >
+          data-testid="auto-cover">
+          {{ clearName }}
+        </VHeading>
       </div>
       <img
         v-if="image"
         :src="image"
         class="absolute top-0 left-0 right-0 h-full w-full object-fill"
-        data-testid="image-cover" />
+        data-testid="image-cover"
+        v-bind="getCrossOriginImgAttrs(image)" />
     </div>
   </div>
 </template>

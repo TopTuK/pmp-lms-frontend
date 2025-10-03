@@ -3,38 +3,49 @@
   import VCard from '@/components/VCard/VCard.vue';
   import VTextInput from '@/components/VTextInput/VTextInput.vue';
   import { ref, computed } from 'vue';
-  import { useAuth } from '@/stores/auth';
+  import { useAuth } from '@/composables/useAuth';
   import { useRouter } from 'vue-router';
+  import { useLoginWithCredentialsMutation } from '@/query';
+  import { useQueryClient } from '@tanstack/vue-query';
 
-  const props = defineProps<{
-    next?: string;
-  }>();
+  const queryClient = useQueryClient();
 
-  const { loginWithCredentials, token } = useAuth();
+  const { token } = useAuth();
+
+  const { mutateAsync: loginWithCredentials, isPending } =
+    useLoginWithCredentialsMutation(queryClient);
+
   const router = useRouter();
 
   const username = ref('');
   const password = ref('');
 
   const isCredentialsInvalid = computed(
-    () => !(username.value && password.value),
+    () => !username.value || !password.value,
   );
 
-  const isPending = ref(false);
-
-  const handleLogin = async () => {
-    isPending.value = true;
+  const handleSubmit = async () => {
     try {
-      await loginWithCredentials(username.value, password.value);
-      if (token.value) {
-        props.next
-          ? router.push({ path: decodeURIComponent(String(props.next)) })
-          : router.push({ name: 'home' });
+      // @ts-expect-error #TODO JSONWebToken in, and out — must be fixed on backend
+      const { token: newToken } = await loginWithCredentials({
+        username: username.value,
+        password: password.value,
+      });
+
+      token.value = newToken;
+
+      if (router.currentRoute.value.query.redirectTo) {
+        router.push(
+          decodeURIComponent(
+            router.currentRoute.value.query.redirectTo as string,
+          ),
+        );
+      } else {
+        router.push({ name: 'home' });
       }
     } catch {
       console.error('Failed to login');
     }
-    isPending.value = false;
   };
 
   const isEmail = computed(() => {
@@ -47,7 +58,7 @@
 </script>
 
 <template>
-  <VCard tag="form" title="Вход и регистрация" @submit.prevent="handleLogin">
+  <VCard tag="form" title="Вход" @submit.prevent="handleSubmit">
     <div class="flex flex-col gap-16">
       <VTextInput
         v-model="username"
@@ -68,12 +79,16 @@
               @click="router.push({ name: 'login-reset' })">
               Не помню пароль</button
             >)
-          </span></template
-        >
+          </span>
+        </template>
       </VTextInput>
     </div>
     <template #footer>
-      <VButton :disabled="isCredentialsInvalid" class="flex-grow" type="submit">
+      <VButton
+        :disabled="isCredentialsInvalid"
+        :loading="isPending"
+        class="flex-grow"
+        type="submit">
         Войти
       </VButton>
       <VButton appearance="link" class="flex-grow" @click="emit('change')">

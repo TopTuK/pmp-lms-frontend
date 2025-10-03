@@ -1,13 +1,11 @@
 <script lang="ts" setup>
   import type { Breadcrumb } from '@/components/VBreadcrumbs/VBreadcrumbs.vue';
-  import { useLessonsQuery } from '@/query';
+  import { useLessonsQuery, useStudiesQuery, useModuleQuery } from '@/query';
   import { computed } from 'vue';
   import VLoggedLayout from '@/layouts/VLoggedLayout/VLoggedLayout.vue';
-  import { useStudiesQuery } from '@/query';
   import VLessonCard from '@/components/VLessonCard/VLessonCard.vue';
   import VHtmlContent from '@/components/VHtmlContent/VHtmlContent.vue';
   import VLoadingView from '@/views/VLoadingView/VLoadingView.vue';
-  import { useModuleQuery } from '@/query';
 
   const props = defineProps<{
     courseId: number;
@@ -30,7 +28,7 @@
     return [
       { name: 'Мои курсы', to: { name: 'home' } },
       {
-        name: courseName.value ? courseName.value : 'Материалы курса',
+        name: courseName.value ?? 'Материалы курса',
         to: { name: 'modules', params: { courseId: props.courseId } },
       },
       {
@@ -56,7 +54,7 @@
     v-if="!(isStudiesLoading || isModuleLoading || isLessonsLoading)"
     :title="moduleName"
     :breadcrumbs="breadcrumbs">
-    <VHtmlContent v-if="moduleText" :content="moduleText" />
+    <VHtmlContent v-if="moduleText" :html="moduleText" />
     <div class="VLessonsView gap-32 flex flex-col">
       <div v-if="lessons && lessons.length > 0" class="VLessonsView__Layout">
         <VLessonCard

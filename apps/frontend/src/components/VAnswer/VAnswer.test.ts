@@ -3,14 +3,16 @@ import { VueWrapper, mount, RouterLinkStub } from '@vue/test-utils';
 import VAnswer from '@/components/VAnswer/VAnswer.vue';
 import { getName } from '@/utils/getName';
 import type VAvatar from '@/components/VAvatar/VAvatar.vue';
-import type VHtmlContent from '@/components/VHtmlContent/VHtmlContent.vue';
+import type VAnswerContent from '@/components/VAnswerContent/VAnswerContent.vue';
 import dayjs from 'dayjs';
 import { cloneDeep } from 'lodash-es';
 import { faker } from '@faker-js/faker';
 import { mockAnswer } from '@/mocks/mockAnswer';
 import { mockUserSafe } from '@/mocks/mockUserSafe';
-import { useRemoveHomeworkReactionMutation } from '@/query';
-import { useAddHomeworkReactionMutation } from '@/query';
+import {
+  useRemoveHomeworkReactionMutation,
+  useAddHomeworkReactionMutation,
+} from '@/query';
 
 const uuid = faker.string.uuid();
 
@@ -68,7 +70,7 @@ describe('VAnswer', () => {
     return wrapper.findComponent<typeof VAvatar>('[data-testid="avatar"]');
   };
   const getContentWrapper = () => {
-    return wrapper.findComponent<typeof VHtmlContent>(
+    return wrapper.findComponent<typeof VAnswerContent>(
       '[data-testid="content"]',
     );
   };
@@ -77,9 +79,9 @@ describe('VAnswer', () => {
   };
 
   test('props to display avatar passed to VAvatar', () => {
-    const { uuid } = defaultProps.answer.author;
+    const { uuid: authorUuid } = defaultProps.answer.author;
 
-    expect(getAvatarWrapper().props().userId).toBe(uuid);
+    expect(getAvatarWrapper().props().userId).toBe(authorUuid);
   });
 
   test('answer has author name', () => {
@@ -90,7 +92,7 @@ describe('VAnswer', () => {
 
   test('answer has relative date', () => {
     const years = 10;
-    const props = Object.assign({}, defaultProps);
+    const props = { ...defaultProps };
     defaultProps.answer.created = dayjs()
       .subtract(years, 'years')
       .toISOString();
@@ -99,8 +101,10 @@ describe('VAnswer', () => {
     expect(getDateWrapper().text()).toContain(years);
   });
 
-  test('props to render content passed to VHtmlContent', () => {
-    expect(getContentWrapper().props().content).toBe(defaultProps.answer.text);
+  test('props to render content passed to VAnswerContent', () => {
+    expect(getContentWrapper().props().answer).toStrictEqual(
+      defaultProps.answer,
+    );
   });
 
   test('answer has own badge if user is not matching author', () => {

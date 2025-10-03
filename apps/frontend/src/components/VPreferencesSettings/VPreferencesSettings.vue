@@ -1,9 +1,12 @@
 <script lang="ts" setup>
   import VCard from '@/components/VCard/VCard.vue';
-  import VRadioSwitch, {
-    type RadioOption,
-  } from '@/components/VRadioSwitch/VRadioSwitch.vue';
-  import { MoonFilledIcon, DevicesIcon, SunFilledIcon } from 'vue-tabler-icons';
+  import VRadioSwitch from '@/components/VRadioSwitch/VRadioSwitch.vue';
+  import type { RadioOption } from '@/components/VRadioSwitch/VRadioSwitch.vue';
+  import {
+    IconMoonFilled,
+    IconDevices,
+    IconSunFilled,
+  } from '@tabler/icons-vue';
   import { useColorMode } from '@vueuse/core';
 
   enum DarkMode {
@@ -16,17 +19,17 @@
     {
       value: DarkMode.Auto,
       label: 'Как в системе',
-      icon: DevicesIcon,
+      icon: IconDevices,
     },
     {
       value: DarkMode.Light,
       label: 'Светлая',
-      icon: SunFilledIcon,
+      icon: IconSunFilled,
     },
     {
       value: DarkMode.Dark,
       label: 'Темная',
-      icon: MoonFilledIcon,
+      icon: IconMoonFilled,
     },
   ];
 

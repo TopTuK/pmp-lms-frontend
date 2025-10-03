@@ -28,6 +28,8 @@
     await updateAvatar(file.value || null);
   };
 
+  // #FIXME
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const showPreview = async (cropperInstance: any) => {
     avatar.value = cropperInstance!.getCroppedCanvas()!.toDataURL();
 
@@ -45,31 +47,36 @@
 
 <template>
   <VCard title="Аватар">
-    <avatar-cropper
-      v-model="showCropper"
-      :labels="{ cancel: 'Отменить', submit: 'Сохранить' }"
-      :upload-handler="showPreview" />
-    <div class="flex gap-16">
-      <VAvatar :user-id="user?.uuid" :image="avatar" size="md" />
-      <button data-testid="upload" class="link p-6" @click="showCropper = true">
-        Загрузить
-      </button>
-      <button
-        v-if="avatar"
-        data-testid="delete"
-        class="p-6 hover:text-red"
-        @click="deleteAvatar">
-        Удалить
-      </button>
-    </div>
+    <template v-if="user">
+      <avatar-cropper
+        v-model="showCropper"
+        :labels="{ cancel: 'Отменить', submit: 'Сохранить' }"
+        :upload-handler="showPreview" />
+      <div class="flex gap-16">
+        <VAvatar :user-id="user.uuid" :image="avatar" size="md" />
+        <button
+          data-testid="upload"
+          class="link p-6"
+          @click="showCropper = true">
+          Загрузить
+        </button>
+        <button
+          v-if="avatar"
+          data-testid="delete"
+          class="p-6 hover:text-red"
+          @click="deleteAvatar">
+          Удалить
+        </button>
+      </div>
+    </template>
     <template #footer>
       <VButton
         data-testid="save"
         :disabled="isSaveButtonDisabled"
         :loading="isUpdatePending"
-        @click="saveProfile"
-        >{{ isUpdatePending ? 'Сохраняется...' : 'Сохранить' }}</VButton
-      >
+        @click="saveProfile">
+        {{ isUpdatePending ? 'Сохраняется...' : 'Сохранить' }}
+      </VButton>
     </template>
   </VCard>
 </template>

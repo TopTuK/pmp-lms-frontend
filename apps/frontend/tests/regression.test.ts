@@ -66,23 +66,63 @@ describe('visual regression test for', () => {
       name: 'Settings',
       path: `/iframe?id=app-vsettingsview--default&viewMode=story`,
     },
-    // {
-    //   name: 'Materials',
-    //   path: '/iframe?id=app-vnotionview--default&viewMode=story',
-    // },
-    // {
-    //   name: 'Materials Missing',
-    //   path: '/iframe?id=app-vnotionview--empty&viewMode=story',
-    // },
+    {
+      name: 'Materials',
+      path: '/iframe?id=app-vnotionview--default&viewMode=story',
+    },
+    {
+      name: 'Materials Missing',
+      path: '/iframe?id=app-vnotionview--empty&viewMode=story',
+    },
+    {
+      name: 'Modules',
+      path: '/iframe?id=app-vmodulesview--default&viewMode=story',
+    },
+    {
+      name: 'No Modules',
+      path: '/iframe?id=app-vmodulesview--empty&viewMode=story',
+    },
+    {
+      name: 'Modules Without Extra Info',
+      path: '/iframe?id=app-vmodulesview--without-extra-info&viewMode=story',
+    },
+    {
+      name: 'Lessons',
+      path: '/iframe?id=app-vlessonsview--default&viewMode=story',
+    },
+    {
+      name: 'No Lessons',
+      path: '/iframe?id=app-vlessonsview--empty&viewMode=story',
+    },
+    {
+      name: 'Lessons Without Module Text',
+      path: '/iframe?id=app-vlessonsview--without-module-text&viewMode=story',
+    },
+    {
+      name: 'Homework Question',
+      path: '/iframe?id=app-vhomeworkquestionview--default&viewMode=story',
+    },
+    {
+      name: 'Homework Answer',
+      path: '/iframe?id=app-vhomeworkanswerview--default&viewMode=story',
+    },
+    {
+      name: 'Homework Answer Other User',
+      path: '/iframe?id=app-vhomeworkanswerview--other-user-answer&viewMode=story',
+    },
+    {
+      name: 'Homework Answer Without CrossChecks',
+      path: '/iframe?id=app-vhomeworkanswerview--without-cross-checks&viewMode=story',
+    },
   ];
 
-  scenarios.forEach((test) => {
+  scenarios.forEach((scenario) => {
     VIEWPORTS.forEach((viewport) => {
       COLOR_SCHEMES.forEach((colorScheme) => {
         tests.push([
-          `${test.name} — ${viewport[0]}×${viewport[1]} ${colorScheme}`,
-          test.path,
-          test.action ? test.action : async () => {},
+          `${scenario.name} — ${viewport[0]}×${viewport[1]} ${colorScheme}`,
+          scenario.path,
+          scenario.action || (async () => {}),
           viewport[0],
           viewport[1],
           colorScheme,
@@ -112,6 +152,7 @@ describe('visual regression test for', () => {
   test.each(tests)(
     '%s',
     async (name, route, action, width, height, colorScheme) => {
+      // eslint-disable-next-line no-console
       console.log(`Running test ${++testIndex} of ${tests.length}: ${name}`);
       await page.setViewportSize({ width, height });
 
@@ -134,7 +175,7 @@ describe('visual regression test for', () => {
         customDiffConfig: {
           ssim: 'fast',
         },
-        failureThreshold: Math.pow(16, 2),
+        failureThreshold: 16 ** 2,
         failureThresholdType: 'pixel',
         storeReceivedOnFailure: true,
         customReceivedPostfix: '',

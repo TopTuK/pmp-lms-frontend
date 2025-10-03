@@ -24,7 +24,7 @@
 
   const isEdit = ref(false);
 
-  const { mutateAsync: updateAnswerMutation } =
+  const { mutateAsync: updateAnswerMutation, isPending: isUpdatePending } =
     useHomeworkAnswerUpdateMutation(queryClient);
   const { mutateAsync: deleteAnswerMutation } =
     useHomeworkAnswerDeleteMutation(queryClient);
@@ -41,17 +41,18 @@
     }
   };
 
-  const text = ref<string>(props.answer.text ?? '');
+  const content = ref<string>(props.answer.content ?? props.answer.legacy_text);
 
   const handleUpdate = async () => {
     try {
       await updateAnswerMutation({
         answerId: props.answer.slug,
-        text: text.value,
+        content: content.value,
       });
-    } catch {}
-
-    isEdit.value = false;
+      isEdit.value = false;
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   onMounted(() => {
@@ -71,5 +72,9 @@
       <slot name="footer" />
     </template>
   </VAnswer>
-  <VCreateAnswer v-else-if="isEdit" v-model="text" @send="handleUpdate" />
+  <VCreateAnswer
+    v-else-if="isEdit"
+    v-model="content"
+    :is-pending="isUpdatePending"
+    @send="handleUpdate" />
 </template>

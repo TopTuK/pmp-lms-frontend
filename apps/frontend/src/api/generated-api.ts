@@ -10,6 +10,42 @@
  * ---------------------------------------------------------------
  */
 
+export enum RecommendedVideoProviderEnum {
+  Youtube = 'youtube',
+  Rutube = 'rutube',
+}
+
+/**
+ * * `RU` - Русский
+ * * `EN` - Английский
+ */
+export enum LanguageEnum {
+  RU = 'RU',
+  EN = 'EN',
+}
+
+/**
+ * * `male` - Мужчина
+ * * `female` - Женщина
+ */
+export enum GenderEnum {
+  Male = 'male',
+  Female = 'female',
+}
+
+export enum DesiredBankEnum {
+  B2B = 'b2b',
+  Dolyame = 'dolyame',
+  Stripe = 'stripe',
+  StripeKz = 'stripe_kz',
+  TinkoffBank = 'tinkoff_bank',
+  ZeroPrice = 'zero_price',
+}
+
+export enum BlankEnum {
+  Value = '',
+}
+
 export interface Answer {
   /** @format date-time */
   created: string;
@@ -21,8 +57,8 @@ export interface Answer {
   author: UserSafe;
   /** @format uuid */
   parent: string;
-  text: string;
-  src: string;
+  legacy_text: string;
+  content?: any;
   has_descendants: boolean;
   is_editable: boolean;
   reactions: ReactionDetailed[];
@@ -39,7 +75,7 @@ export interface AnswerCreate {
   question: string;
   /** @format uuid */
   parent?: string | null;
-  text: string;
+  content: any;
 }
 
 export interface AnswerImage {
@@ -67,21 +103,16 @@ export interface AnswerTree {
   author: UserSafe;
   /** @format uuid */
   parent: string;
-  text: string;
-  src: string;
+  legacy_text: string;
+  content?: any;
   has_descendants: boolean;
   is_editable: boolean;
   reactions: ReactionDetailed[];
   descendants: AnswerTree[];
 }
 
-/** For swagger only */
 export interface AnswerUpdate {
-  text: string;
-}
-
-export enum BlankEnum {
-  Value = '',
+  content: any;
 }
 
 export interface Breadcrumbs {
@@ -130,6 +161,12 @@ export interface Course {
   slug: string;
   /** @maxLength 255 */
   name: string;
+  product_name: string;
+  /**
+   * Тариф
+   * @maxLength 64
+   */
+  tariff_name?: string | null;
   home_page_slug: string;
   /**
    * Обложка
@@ -172,13 +209,48 @@ export interface CourseLink {
 }
 
 export interface CourseSimple {
-  /** @maxLength 255 */
-  name: string;
+  name?: string;
   /**
    * Название для международных покупок
    * @maxLength 255
    */
   name_international?: string;
+  /**
+   * Название
+   * @maxLength 255
+   */
+  product_name: string;
+  /**
+   * Тариф
+   * @maxLength 64
+   */
+  tariff_name?: string | null;
+}
+
+/** Course with commercial data. Requires bank context */
+export interface CourseWithPrice {
+  /**
+   * @maxLength 50
+   * @pattern ^[-a-zA-Z0-9_]+$
+   */
+  slug: string;
+  name?: string;
+  /**
+   * Название для международных покупок
+   * @maxLength 255
+   */
+  name_international?: string;
+  /**
+   * Название
+   * @maxLength 255
+   */
+  product_name: string;
+  /**
+   * Тариф
+   * @maxLength 64
+   */
+  tariff_name?: string | null;
+  price?: Price;
 }
 
 export interface CrossCheck {
@@ -189,15 +261,6 @@ export interface CrossCheck {
 export interface CrossCheckStats {
   total: number;
   checked: number;
-}
-
-export enum DesiredBankEnum {
-  B2B = 'b2b',
-  Dolyame = 'dolyame',
-  Stripe = 'stripe',
-  StripeKz = 'stripe_kz',
-  TinkoffBank = 'tinkoff_bank',
-  ZeroPrice = 'zero_price',
 }
 
 export interface Diploma {
@@ -240,16 +303,7 @@ export interface DiplomaRetrieve {
    */
   image: string;
   student: UserSafe;
-  other_languages: Record<string, any>;
-}
-
-/**
- * * `male` - Мужчина
- * * `female` - Женщина
- */
-export enum GenderEnum {
-  Male = 'male',
-  Female = 'female',
+  other_languages?: Record<string, any>;
 }
 
 /** Requires *any* model annotaded with statistics. For annotation examples check homework.QuestionQuerySet */
@@ -306,20 +360,13 @@ export interface LMSCourse {
    * @maxLength 200
    */
   calendar_google?: string | null;
-}
-
-/**
- * * `RU` - Русский
- * * `EN` - Английский
- */
-export enum LanguageEnum {
-  RU = 'RU',
-  EN = 'EN',
+  /** Рекомендации по проверке домашки */
+  homework_check_recommendations?: string;
 }
 
 /** Serialize lesson for the user, lesson should be annotated with crosschecks stats */
 export interface Lesson {
-  id: number;
+  id?: number;
   material?: NotionMaterial;
   homework?: HomeworkStats;
   question: Question;
@@ -343,14 +390,36 @@ export interface Module {
    * Дата начала
    * @format date-time
    */
-  start_date?: string | null;
+  start_date: string | null;
+  has_started: boolean;
   /**
    * Подзаг
    * @maxLength 512
    */
-  description?: string | null;
+  description: string | null;
   /** Текст */
   text: string | null;
+}
+
+export interface ModuleDetail {
+  id: number;
+  /** @maxLength 255 */
+  name: string;
+  /**
+   * Дата начала
+   * @format date-time
+   */
+  start_date: string | null;
+  has_started: boolean;
+  /**
+   * Подзаг
+   * @maxLength 512
+   */
+  description: string | null;
+  /** Текст */
+  text: string | null;
+  lesson_count: number;
+  single_lesson_id: number;
 }
 
 export interface NotionMaterial {
@@ -361,6 +430,29 @@ export interface NotionMaterial {
    * @maxLength 128
    */
   title?: string;
+}
+
+export interface Ok {
+  ok?: boolean;
+}
+
+export interface OrderDraft {
+  course: CourseSimple;
+  price: Price;
+}
+
+export interface OrderDraftRequest {
+  course: string;
+  promocode?: string;
+  /**
+   * * `b2b` - B2B
+   * * `dolyame` - Долями
+   * * `stripe` - Stripe USD
+   * * `stripe_kz` - Stripe KZT
+   * * `tinkoff_bank` - Тинькофф
+   * * `zero_price` - Бесплатно
+   */
+  desired_bank?: DesiredBankEnum;
 }
 
 export interface PaginatedAnswerList {
@@ -466,12 +558,9 @@ export interface PasswordResetConfirm {
   token: string;
 }
 
-export interface PatchedAnswerCreate {
-  /** @format uuid */
-  question?: string;
-  /** @format uuid */
-  parent?: string | null;
+export interface PatchedAnswerUpdate {
   text?: string;
+  content?: any;
 }
 
 export interface PatchedDiploma {
@@ -542,10 +631,16 @@ export interface PatchedUser {
   avatar?: string | null;
 }
 
-export interface Promocode {
-  price: number;
+export interface Price {
+  /**
+   * @format decimal
+   * @pattern ^-?\d{0,7}(?:\.\d{0,2})?$
+   */
+  price: string;
   formatted_price: string;
+  /** @maxLength 4 */
   currency: string;
+  /** @maxLength 1 */
   currency_symbol: string;
 }
 
@@ -584,7 +679,7 @@ export interface Question {
    * @maxLength 256
    */
   name: string;
-  text: string;
+  markdown_text: string;
   /**
    * Дедлайн
    * @format date-time
@@ -601,7 +696,7 @@ export interface QuestionDetail {
    * @maxLength 256
    */
   name: string;
-  text: string;
+  markdown_text: string;
   /**
    * Дедлайн
    * @format date-time
@@ -609,6 +704,7 @@ export interface QuestionDetail {
   deadline?: string | null;
   /** Requires *any* model annotaded with statistics. For annotation examples check homework.QuestionQuerySet */
   homework: HomeworkStats;
+  course?: LMSCourse;
 }
 
 export interface ReactionCreate {
@@ -625,16 +721,6 @@ export interface ReactionDetailed {
   emoji: string;
   author: UserSafe;
   answer: string;
-}
-
-export enum RecommendedVideoProviderEnum {
-  Youtube = 'youtube',
-  Rutube = 'rutube',
-}
-
-/** Serializer used for refreshing JWTs. */
-export interface RefreshAuthToken {
-  token: string;
 }
 
 export interface RestAuthDetail {
@@ -655,6 +741,10 @@ export interface TemporarySoonToBeDepricatedQuestion {
    * @format date-time
    */
   deadline?: string | null;
+}
+
+export interface Token {
+  token?: string;
 }
 
 export interface User {
@@ -711,7 +801,7 @@ export interface User {
 
 export interface UserSafe {
   /** @format uuid */
-  uuid?: string;
+  uuid: string;
   /**
    * Имя
    * @maxLength 150
@@ -745,6 +835,12 @@ export interface VideoProvider {
   embed: string;
   /** @format uri */
   src: string;
+}
+
+export interface CourseGroupsCoursesListParams {
+  /** Optional bank to calculate price */
+  desired_bank?: string;
+  slug: string;
 }
 
 export interface CoursesPromocodeRetrieveParams {
@@ -1079,6 +1175,7 @@ export interface ApiConfig<SecurityDataType = unknown>
 
 export enum ContentType {
   Json = 'application/json',
+  JsonApi = 'application/vnd.api+json',
   FormData = 'multipart/form-data',
   UrlEncoded = 'application/x-www-form-urlencoded',
   Text = 'text/plain',
@@ -1235,7 +1332,7 @@ export class Api<SecurityDataType extends unknown> {
      * @secure
      */
     authAsRetrieve: (userId: number, params: RequestParams = {}) =>
-      this.http.request<Record<string, string>, any>({
+      this.http.request<Token, any>({
         path: `/api/v2/auth/as/${userId}/`,
         method: 'GET',
         secure: true,
@@ -1321,7 +1418,7 @@ export class Api<SecurityDataType extends unknown> {
       token: string,
       params: RequestParams = {},
     ) =>
-      this.http.request<Record<string, string>, any>({
+      this.http.request<Token, any>({
         path: `/api/v2/auth/passwordless-token/${token}/`,
         method: 'GET',
         secure: true,
@@ -1341,7 +1438,7 @@ export class Api<SecurityDataType extends unknown> {
       userEmail: string,
       params: RequestParams = {},
     ) =>
-      this.http.request<Record<string, boolean>, any>({
+      this.http.request<Ok, any>({
         path: `/api/v2/auth/passwordless-token/request/${userEmail}/`,
         method: 'GET',
         secure: true,
@@ -1367,21 +1464,22 @@ export class Api<SecurityDataType extends unknown> {
       }),
 
     /**
-     * @description API View that returns a refreshed token (with new expiration) based on existing token If 'orig_iat' field (original issued-at-time) is found it will first check if it's within expiration window, then copy it to the new token.
+     * @description A list of courses with price
      *
-     * @tags auth
-     * @name AuthTokenRefreshCreate
-     * @request POST:/api/v2/auth/token/refresh/
+     * @tags course-groups
+     * @name CourseGroupsCoursesList
+     * @request GET:/api/v2/course-groups/{slug}/courses/
+     * @secure
      */
-    authTokenRefreshCreate: (
-      data: RefreshAuthToken,
+    courseGroupsCoursesList: (
+      { slug, ...query }: CourseGroupsCoursesListParams,
       params: RequestParams = {},
     ) =>
-      this.http.request<RefreshAuthToken, any>({
-        path: `/api/v2/auth/token/refresh/`,
-        method: 'POST',
-        body: data,
-        type: ContentType.Json,
+      this.http.request<CourseWithPrice[], any>({
+        path: `/api/v2/course-groups/${slug}/courses/`,
+        method: 'GET',
+        query: query,
+        secure: true,
         format: 'json',
         ...params,
       }),
@@ -1398,7 +1496,7 @@ export class Api<SecurityDataType extends unknown> {
       { slug, ...query }: CoursesPromocodeRetrieveParams,
       params: RequestParams = {},
     ) =>
-      this.http.request<Promocode, any>({
+      this.http.request<Price, any>({
         path: `/api/v2/courses/${slug}/promocode/`,
         method: 'GET',
         query: query,
@@ -1695,10 +1793,10 @@ export class Api<SecurityDataType extends unknown> {
      */
     homeworkAnswersPartialUpdate: (
       slug: string,
-      data: PatchedAnswerCreate,
+      data: PatchedAnswerUpdate,
       params: RequestParams = {},
     ) =>
-      this.http.request<AnswerCreate, any>({
+      this.http.request<AnswerUpdate, any>({
         path: `/api/v2/homework/answers/${slug}/`,
         method: 'PATCH',
         body: data,
@@ -1921,6 +2019,25 @@ export class Api<SecurityDataType extends unknown> {
         path: `/api/v2/orders/${slug}/confirm/`,
         method: 'GET',
         secure: true,
+        ...params,
+      }),
+
+    /**
+     * @description Create an order draft with given bank and promocode
+     *
+     * @tags orders
+     * @name OrdersDraftCreate
+     * @request POST:/api/v2/orders/draft/
+     * @secure
+     */
+    ordersDraftCreate: (data: OrderDraftRequest, params: RequestParams = {}) =>
+      this.http.request<OrderDraft, any>({
+        path: `/api/v2/orders/draft/`,
+        method: 'POST',
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        format: 'json',
         ...params,
       }),
 

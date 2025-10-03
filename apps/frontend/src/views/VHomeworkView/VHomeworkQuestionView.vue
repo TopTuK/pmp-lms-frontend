@@ -1,16 +1,18 @@
 <script lang="ts" setup>
-  import VHtmlContent from '@/components/VHtmlContent/VHtmlContent.vue';
   import VCreateAnswer from '@/components/VCreateAnswer/VCreateAnswer.vue';
-  import { useStorage } from '@vueuse/core';
+  import { useEditorAutosave } from '@/composables/useEditorAutosave';
   import { useRouter } from 'vue-router';
   import { useQueryClient } from '@tanstack/vue-query';
-  import { useHomeworkAnswerCreateMutation } from '@/query';
+  import {
+    useHomeworkAnswerCreateMutation,
+    useHomeworkQuestionQuery,
+    useLessonQuery,
+  } from '@/query';
   import VLoggedLayout from '@/layouts/VLoggedLayout/VLoggedLayout.vue';
   import VPillHomework from '@/components/VPillHomework/VPillHomework.vue';
   import VLoadingView from '@/views/VLoadingView/VLoadingView.vue';
-  import { useHomeworkQuestionQuery, useLessonsQuery } from '@/query';
-  import { computed } from 'vue';
   import { useHomeworkBreadcrumbs } from './useHomeworkBreadcrumbs';
+  import VMakrdownContent from '@/components/VMakrdownContent/VMakrdownContent.vue';
 
   interface Props {
     questionId: string;
@@ -24,26 +26,11 @@
   const { data: question, isLoading: isQuestionLoading } =
     useHomeworkQuestionQuery(() => props.questionId);
 
-  const { data: lessons, isLoading: isLessonsLoading } = useLessonsQuery(
-    question.value?.breadcrumbs.module.id,
+  const { data: lesson, isLoading: isLessonLoading } = useLessonQuery(
+    () => question.value?.breadcrumbs.lesson?.id,
   );
 
-  const lesson = computed(() => {
-    return lessons.value?.find(
-      (lesson) => lesson.id === question.value?.breadcrumbs.lesson?.id,
-    );
-  });
-
-  defineEmits<{
-    create: [answerId: string];
-    delete: [];
-  }>();
-
-  const draft = useStorage(
-    ['draft', props.questionId].filter(Boolean).join('-'),
-    '',
-    localStorage,
-  );
+  const { content } = useEditorAutosave(['draft', props.questionId]);
 
   const queryClient = useQueryClient();
   const {
@@ -53,7 +40,7 @@
 
   const handleCreateAnswer = async () => {
     const answer = await createAnswerMutation({
-      text: draft.value,
+      content: content.value,
       questionId: props.questionId,
       parentId: undefined,
     });
@@ -72,16 +59,16 @@
 
 <template>
   <VLoggedLayout
-    v-if="!(isQuestionLoading && isLessonsLoading) && question && lesson"
+    v-if="!(isQuestionLoading && isLessonLoading) && question && lesson"
     :breadcrumbs="breadcrumbs"
     :title="question.name">
     <template #pill>
       <VPillHomework v-if="lesson?.homework" :stats="lesson?.homework" />
     </template>
     <section class="flex flex-col gap-24">
-      <VHtmlContent :content="question.text" />
+      <VMakrdownContent :markdown="question.markdown_text" />
       <VCreateAnswer
-        v-model="draft"
+        v-model="content"
         :is-pending="isCreateAnswerPending"
         @send="handleCreateAnswer" />
     </section>

@@ -9,13 +9,11 @@ jobs:
       - name: Checkout 🛎
         uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v3
-
-      - name: Use Node.js
-        uses: actions/setup-node@v4
+      - name: Install mise
+        uses: jdx/mise-action@v2
         with:
-          node-version-file: '.node-version'
-          cache: 'pnpm'
+          cache: true
+          install: true
 
       - name: Install dependencies
         run: pnpm install
@@ -25,16 +23,17 @@ jobs:
         run: pnpm playwright install chromium
         working-directory: apps/frontend
 
-      - name: Build storybook
-        run: pnpm run storybook:build
-        working-directory: apps/frontend
-
       - name: Run storybook
-        run: pnpm run storybook:preview &
+        run: pnpm run storybook &
         working-directory: apps/frontend
 
-      - name: Run visual regression tests
-        run: pnpm run test:regression
+      - name: Run light mode visual regression tests
+        run: COLOR_SCHEME=light pnpm run test:regression
+        working-directory: apps/frontend
+
+      - name: Run dark mode visual regression tests
+        if: success()
+        run: COLOR_SCHEME=dark pnpm run test:regression
         working-directory: apps/frontend
 
       - name: Saving diffs 📥

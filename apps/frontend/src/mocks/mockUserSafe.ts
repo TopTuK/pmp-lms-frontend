@@ -1,4 +1,4 @@
-import type { UserSafe } from '@/api/generated-api';
+import type { UserSafe } from '@/api/generated/generated-api';
 import { fakerRU as faker } from '@faker-js/faker';
 
 export const mockUserSafe = ({
@@ -16,7 +16,7 @@ export const mockUserSafe = ({
     last_name: faker.person.lastName(),
     first_name_en: faker.person.firstName(),
     last_name_en: faker.person.lastName(),
-    avatar: faker.image.url(),
+    avatar: null,
     ...payload,
   };
 };

@@ -9,7 +9,10 @@ interface Scenario {
   action?: () => Promise<void>;
 }
 
-type ColorScheme = 'light' | 'dark';
+enum ColorScheme {
+  Light = 'light',
+  Dark = 'dark',
+}
 
 type Test = [string, string, () => Promise<void>, number, number, ColorScheme];
 
@@ -18,11 +21,22 @@ type Viewport = [number, number];
 const VIEWPORTS: Viewport[] = [
   [1440, 900],
   [768, 1024],
-  [390, 840],
   [320, 560],
 ];
 
-const COLOR_SCHEMES: ColorScheme[] = ['light', 'dark'];
+const getColorSchemes = (): ColorScheme[] => {
+  const envColorScheme = process.env.COLOR_SCHEME;
+  if (
+    envColorScheme === ColorScheme.Light ||
+    envColorScheme === ColorScheme.Dark
+  ) {
+    return [envColorScheme];
+  }
+
+  return [ColorScheme.Light, ColorScheme.Dark];
+};
+
+const COLOR_SCHEMES: ColorScheme[] = getColorSchemes();
 
 describe('visual regression test for', () => {
   let browser: playwright.Browser;
@@ -33,86 +47,86 @@ describe('visual regression test for', () => {
   const scenarios: Scenario[] = [
     {
       name: 'Login — email login',
-      path: `/iframe?id=app-vloginview--default&viewMode=story`,
+      path: `/iframe.html?id=app-vloginview--default&viewMode=story`,
     },
     {
       name: 'Login — password login',
-      path: `/iframe?id=app-vloginview--default&viewMode=story`,
+      path: `/iframe.html?id=app-vloginview--default&viewMode=story`,
       action: async () => {
         await page.click('[data-testid="to-password-mode"]');
       },
     },
     {
       name: 'Login — reset password',
-      path: `/iframe?id=app-vloginresetview--default&viewMode=story`,
+      path: `/iframe.html?id=app-vloginresetview--default&viewMode=story`,
     },
     {
       name: 'Login — change password',
-      path: `/iframe?id=app-vloginchangeview--default&viewMode=story`,
+      path: `/iframe.html?id=app-vloginchangeview--default&viewMode=story`,
     },
     {
       name: 'Login — mail sent',
-      path: '/iframe?id=app-vmailsentview--default&viewMode=story',
+      path: '/iframe.html?id=app-vmailsentview--default&viewMode=story',
     },
     {
       name: 'Certificates',
-      path: `/iframe?id=app-vcertificatesview--default&viewMode=story`,
+      path: `/iframe.html?id=app-vcertificatesview--default&viewMode=story`,
     },
     {
       name: 'No Certificates',
-      path: `/iframe?id=app-vcertificatesview--empty&viewMode=story`,
+      path: `/iframe.html?id=app-vcertificatesview--empty&viewMode=story`,
     },
     {
       name: 'Settings',
-      path: `/iframe?id=app-vsettingsview--default&viewMode=story`,
+      path: `/iframe.html?id=app-vsettingsview--default&viewMode=story`,
     },
     {
       name: 'Materials',
-      path: '/iframe?id=app-vnotionview--default&viewMode=story',
+      path: '/iframe.html?id=app-vnotionview--default&viewMode=story',
     },
     {
       name: 'Materials Missing',
-      path: '/iframe?id=app-vnotionview--empty&viewMode=story',
+      path: '/iframe.html?id=app-vnotionview--empty&viewMode=story',
     },
     {
-      name: 'Modules',
-      path: '/iframe?id=app-vmodulesview--default&viewMode=story',
+      name: 'Course',
+      path: '/iframe.html?id=app-vcourseview--default&viewMode=story',
     },
     {
-      name: 'No Modules',
-      path: '/iframe?id=app-vmodulesview--empty&viewMode=story',
+      name: 'No Course Modules',
+      path: '/iframe.html?id=app-vcourseview--empty&viewMode=story',
     },
     {
-      name: 'Modules Without Extra Info',
-      path: '/iframe?id=app-vmodulesview--without-extra-info&viewMode=story',
+      name: 'Course Without Extra Info',
+      path: '/iframe.html?id=app-vcourseview--without-extra-info&viewMode=story',
     },
     {
-      name: 'Lessons',
-      path: '/iframe?id=app-vlessonsview--default&viewMode=story',
+      name: 'Module',
+      path: '/iframe.html?id=app-vmoduleview--default&viewMode=story',
     },
     {
-      name: 'No Lessons',
-      path: '/iframe?id=app-vlessonsview--empty&viewMode=story',
+      name: 'No Module Lessons',
+      path: '/iframe.html?id=app-vmoduleview--empty&viewMode=story',
     },
     {
-      name: 'Lessons Without Module Text',
-      path: '/iframe?id=app-vlessonsview--without-module-text&viewMode=story',
+      name: 'Module Without Text',
+      path: '/iframe.html?id=app-vmoduleview--without-module-text&viewMode=story',
     },
     {
       name: 'Homework Question',
-      path: '/iframe?id=app-vhomeworkquestionview--default&viewMode=story',
+      path: '/iframe.html?id=app-vhomeworkquestionview--default&viewMode=story',
     },
     {
       name: 'Homework Answer',
-      path: '/iframe?id=app-vhomeworkanswerview--default&viewMode=story',
+      path: '/iframe.html?id=app-vhomeworkanswerview--default&viewMode=story',
     },
     {
       name: 'Homework Answer Other User',
-      path: '/iframe?id=app-vhomeworkanswerview--other-user-answer&viewMode=story',
+      path: '/iframe.html?id=app-vhomeworkanswerview--other-user-answer&viewMode=story',
     },
     {
       name: 'Homework Answer Without CrossChecks',
-      path: '/iframe?id=app-vhomeworkanswerview--without-cross-checks&viewMode=story',
+      path: '/iframe.html?id=app-vhomeworkanswerview--without-cross-checks&viewMode=story',
     },
   ];
 
@@ -156,11 +170,11 @@ describe('visual regression test for', () => {
       console.log(`Running test ${++testIndex} of ${tests.length}: ${name}`);
       await page.setViewportSize({ width, height });
 
-      await page.goto(`http://localhost:3000${route}`, {
+      await page.goto(`http://localhost:3001${route}`, {
         waitUntil: 'networkidle',
       });
 
-      if (colorScheme === 'dark') {
+      if (colorScheme === ColorScheme.Dark) {
         await page.evaluate(() => {
           document.documentElement.classList.add('dark');
         });

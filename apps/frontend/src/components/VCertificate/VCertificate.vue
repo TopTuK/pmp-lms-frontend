@@ -1,6 +1,5 @@
 <script lang="ts" setup>
-  import type { Diploma } from '@/api/generated-api';
-  import { getCrossOriginImgAttrs } from '@/utils/getCrossOriginImageAttributes';
+  import type { Diploma } from '@/api/generated/generated-api';
   import { computed } from 'vue';
 
   const props = defineProps<{
@@ -22,17 +21,28 @@
     <figure>
       <img
         data-testid="image"
+        :src="certificate.image"
         :alt="certificate.course.product_name"
-        v-bind="getCrossOriginImgAttrs(certificate.image)" />
-      <figcaption class="text-center" data-testid="label">
+      />
+      <figcaption
+        class="text-center"
+        data-testid="label"
+      >
         {{ localeLabel[certificate.language] }}
       </figcaption>
     </figure>
     <div class="mt-8 flex flex-wrap justify-center gap-x-16 gap-y-8">
-      <a class="link" data-testid="download" :href="certificate.image" download
+      <a
+        class="link"
+        data-testid="download"
+        :href="certificate.image"
+        download
         >Скачать</a
       >
-      <a class="link" data-testid="linkedin" :href="certificateLink"
+      <a
+        class="link"
+        data-testid="linkedin"
+        :href="certificateLink"
         >Ссылка для LinkedIn</a
       >
     </div>

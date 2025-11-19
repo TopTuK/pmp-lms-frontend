@@ -7,7 +7,7 @@ import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query';
 import type { VueQueryPluginOptions } from '@tanstack/vue-query';
 import { ref } from 'vue';
 import { useUserQuery } from '@/query';
-import type { User } from '@/api/generated-api';
+import type { User } from '@/api/generated/generated-api';
 import { useRouter } from 'vue-router';
 
 const routerPushMock = vi.fn();
@@ -25,6 +25,7 @@ const getDefaultData = (): User => {
     first_name: faker.person.firstName(),
     last_name: faker.person.lastName(),
     avatar: faker.image.avatar(),
+    is_staff: false,
   };
 };
 
@@ -122,7 +123,7 @@ describe('VProfileMenu', () => {
     await getButton().trigger('click');
     await getHomeButton().trigger('click');
 
-    expect(routerPushMock).toHaveBeenCalledWith({ name: 'home' });
+    expect(routerPushMock).toHaveBeenCalledWith({ name: 'courses' });
   });
 
   test('Certificates button redirects to certificates page', async () => {

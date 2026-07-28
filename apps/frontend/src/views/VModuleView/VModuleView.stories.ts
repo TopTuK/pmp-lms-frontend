@@ -1,15 +1,16 @@
 import type { Meta, StoryFn } from '@storybook/vue3-vite';
 import VModuleView from './VModuleView.vue';
 import { defaultLayoutDecorator } from '@/utils/layoutDecorator';
-import { mockCourse } from '@/mocks/mockCourse';
-import { mockModule } from '@/mocks/mockModule';
-import { mockQuestion } from '@/mocks/mockQuestion';
-import { studiesKeys, lmsKeys } from '@/query';
+import {
+  createCourse,
+  createModule,
+  createQuestion,
+  purchasedCoursesListQueryKey,
+  lmsModulesRetrieveQueryKey,
+  lmsLessonsListQueryKey,
+} from '@/api/generated';
 import { useQueryClient } from '@tanstack/vue-query';
-import type {
-  Lesson,
-  RecommendedVideoProviderEnum,
-} from '@/api/generated/generated-api';
+import type { Lesson, RecommendedVideoProviderEnum } from '@/api/generated';
 
 export default {
   title: 'App/VModuleView',
@@ -22,25 +23,29 @@ export default {
   },
 } as Meta;
 
-const STATIC_COURSE = mockCourse({
+const STATIC_COURSE = createCourse({
   id: 1,
   name: 'Асинхронная архитектура',
 });
 
-const STATIC_MODULE = mockModule({
+const STATIC_MODULE = createModule({
   id: 1,
   name: 'Введение в асинхронную архитектуру',
   text: '<p>Добро пожаловать в модуль по асинхронной архитектуре. В этом модуле мы изучим основные принципы и паттерны асинхронного программирования.</p>',
 });
 
-// Using existing mock patterns from VLessonCard.stories.ts
-const baseLesson = { id: 1 };
-
 const STATIC_LESSONS: Lesson[] = [
   {
-    ...baseLesson,
     id: 1,
-    question: mockQuestion(),
+    homework: {
+      is_sent: false,
+    },
+    question: createQuestion({
+      slug: 'intro-async-arch',
+      name: 'Введение в асинхронную архитектуру',
+      markdown_text: '## Введение\n\nВопросы по материалу лекции.',
+      deadline: '2024-01-20T23:59:00Z',
+    }),
     call: {
       name: 'Введение в асинхронную архитектуру',
       description: 'Обзор основных принципов и подходов',
@@ -54,47 +59,37 @@ const STATIC_LESSONS: Lesson[] = [
         },
       ],
       recommended_video_provider:
-        'youtube' as RecommendedVideoProviderEnum.Youtube,
+        'youtube' as RecommendedVideoProviderEnum.youtube,
     },
   },
   {
-    ...baseLesson,
     id: 2,
-    question: mockQuestion(),
     homework: {
-      is_sent: true,
-      crosschecks: {
-        total: 5,
-        checked: 3,
-      },
-      question: {
-        slug: 'async-fundamentals',
-        name: 'Основы асинхронности',
-        deadline: '2024-01-25T23:59:00Z',
-      },
+      is_sent: false,
     },
-  },
-  {
-    ...baseLesson,
-    id: 3,
-    question: mockQuestion(),
+    question: createQuestion({
+      slug: 'async-patterns',
+      name: 'Паттерны асинхронного программирования',
+      markdown_text:
+        '## Паттерны асинхронного программирования\n\nИзучение основных паттернов.',
+      deadline: '2024-01-30T23:59:00Z',
+    }),
     material: {
       id: 'material-async-patterns',
       title: 'Паттерны асинхронного программирования',
     },
   },
   {
-    ...baseLesson,
-    id: 4,
-    question: mockQuestion(),
+    id: 3,
     homework: {
       is_sent: false,
-      question: {
-        slug: 'event-sourcing',
-        name: 'Event Sourcing',
-        deadline: '2024-02-01T23:59:00Z',
-      },
     },
+    question: createQuestion({
+      name: 'Event Sourcing',
+      slug: 'event-sourcing',
+      markdown_text: '## Event Sourcing\n\nРеализуйте паттерн Event Sourcing.',
+      deadline: '2024-02-01T23:59:00Z',
+    }),
   },
 ];
 
@@ -104,15 +99,21 @@ const Template: StoryFn = (args) => ({
     const queryClient = useQueryClient();
 
     if (args.studies) {
-      queryClient.setQueryData(studiesKeys.lists(), args.studies);
+      queryClient.setQueryData(
+        purchasedCoursesListQueryKey({ page_size: 100 }),
+        { results: args.studies },
+      );
     }
     if (args.module) {
-      queryClient.setQueryData(lmsKeys.module(args.moduleId), args.module);
+      queryClient.setQueryData(
+        lmsModulesRetrieveQueryKey(args.moduleId),
+        args.module,
+      );
     }
     if (args.lessons !== undefined) {
       queryClient.setQueryData(
-        lmsKeys.moduleLessons(args.moduleId),
-        args.lessons,
+        lmsLessonsListQueryKey({ module: args.moduleId, page_size: 1000 }),
+        { results: args.lessons },
       );
     }
 
@@ -143,7 +144,7 @@ export const WithoutModuleText = {
   render: Template,
   args: {
     studies: [STATIC_COURSE],
-    module: mockModule({
+    module: createModule({
       id: 1,
       name: 'Модуль без описания',
       text: null,

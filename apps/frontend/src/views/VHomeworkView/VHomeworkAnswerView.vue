@@ -8,14 +8,16 @@
   import { useEditorAutosave } from '@/composables/useEditorAutosave';
   import VExistingAnswer from '@/components/VExistingAnswer';
   import {
-    useHomeworkCrosschecksQuery,
-    useHomeworkAnswerCreateMutation,
-    useHomeworkQuestionQuery,
-    useHomeworkAnswerQuery,
-    useUserQuery,
-    populateAnswersCacheFromDescendants,
-    useLessonQuery,
-  } from '@/query';
+    useHomeworkCrosschecksList,
+    useHomeworkAnswersCreate,
+    useHomeworkQuestionsRetrieve,
+    useHomeworkAnswersRetrieve,
+    useUsersMeRetrieve,
+    useLmsLessonsRetrieve,
+    homeworkAnswersRetrieveQueryKey,
+    homeworkCrosschecksListQueryKey,
+    lmsLessonsListQueryKey,
+  } from '@/api/generated';
   import { computed, watch } from 'vue';
   import { useRouter } from 'vue-router';
   import { useQueryClient } from '@tanstack/vue-query';
@@ -25,6 +27,7 @@
   import VLoadingView from '@/views/VLoadingView/VLoadingView.vue';
   import { getEmptyContent } from '@/utils/tiptap';
   import VMakrdownContent from '@/components/VMakrdownContent/VMakrdownContent.vue';
+  import { usePopulateAnswersCache } from '@/composables/usePopulateAnswersCache';
 
   const props = defineProps<{
     questionId: string;
@@ -35,22 +38,28 @@
 
   const { breadcrumbs } = useHomeworkBreadcrumbs(() => props.questionId);
   const { data: question, isLoading: isQuestionLoading } =
-    useHomeworkQuestionQuery(() => props.questionId);
-  const { data: answer, isLoading: isAnswerLoading } = useHomeworkAnswerQuery(
-    () => props.answerId,
+    useHomeworkQuestionsRetrieve(computed(() => props.questionId));
+  const { data: answer, isLoading: isAnswerLoading } =
+    useHomeworkAnswersRetrieve(computed(() => props.answerId));
+
+  const { data: lesson, isLoading: isLessonLoading } = useLmsLessonsRetrieve(
+    computed(() => question.value?.breadcrumbs.lesson?.id as number),
+    {
+      query: {
+        enabled: () => !!question.value?.breadcrumbs.lesson?.id,
+      },
+    },
   );
 
-  const { data: lesson, isLoading: isLessonLoading } = useLessonQuery(
-    () => question.value?.breadcrumbs.lesson?.id,
-  );
+  const { data: user, isLoading: isUserLoading } = useUsersMeRetrieve();
 
-  const { data: user, isLoading: isUserLoading } = useUserQuery();
+  const populateAnswersCache = usePopulateAnswersCache();
 
   watch(
     () => answer.value,
     () => {
       if (answer.value) {
-        populateAnswersCacheFromDescendants(queryClient, answer.value);
+        populateAnswersCache(answer.value);
       }
     },
   );
@@ -79,9 +88,11 @@
   const handleCreateComment = async () => {
     try {
       const createdAnswer = await createAnswerMutation({
-        content: content.value,
-        questionId: props.questionId,
-        parentId: props.answerId,
+        data: {
+          content: content.value,
+          question: props.questionId,
+          parent: props.answerId,
+        },
       });
 
       content.value = getEmptyContent();
@@ -95,8 +106,8 @@
     }
   };
 
-  const { data: crosschecks } = useHomeworkCrosschecksQuery(
-    () => props.questionId,
+  const { data: crosschecks } = useHomeworkCrosschecksList(
+    computed(() => ({ question: props.questionId })),
   );
 
   const isSent = computed(() => {
@@ -108,8 +119,25 @@
 
   const {
     mutateAsync: createAnswerMutation,
-    isPending: isCreateAnswerPending,
-  } = useHomeworkAnswerCreateMutation(queryClient);
+    isPending,
+    error,
+  } = useHomeworkAnswersCreate({
+    mutation: {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries({
+          queryKey: homeworkAnswersRetrieveQueryKey(data.parent),
+        });
+        queryClient.invalidateQueries({
+          queryKey: homeworkCrosschecksListQueryKey({
+            question: props.questionId,
+          }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: lmsLessonsListQueryKey(),
+        });
+      },
+    },
+  });
 
   const handleDeleteAnswer = () => {
     router.push({
@@ -140,7 +168,7 @@
     );
 
     if (completedCrosschecks.length === 0) {
-      return 'Вы увидите ответ преподавателя и ваших однокурсников после того как отправите свою работу и прокомментируете 3 чужих домашки.';
+      return 'Вы увидите комментарии ваших однокурсников после того, как прокомментируете три домашки. Одна проверка — один открытый комментарий.';
     }
 
     if (completedCrosschecks.length < 3) {
@@ -170,29 +198,12 @@
   >
     <template #pill>
       <VPillHomework
-        v-if="lesson.homework"
-        :stats="lesson.homework"
+        v-if="lesson.homework && lesson.question"
+        :lesson="lesson"
       />
     </template>
-    <section class="VHomeworkAnswerView__Section -mt-16">
-      <div
-        v-if="isOwnAnswer"
-        class="card mb-16 bg-accent-green"
-      >
-        <VHeading
-          tag="h3"
-          class="mb-8"
-        >
-          Поделитесь ссылкой на сделанную домашку
-        </VHeading>
-        <div class="block select-all break-all">
-          {{ answerLink }}
-        </div>
-      </div>
-      <VDetails>
-        <template #summary> Текст задания </template>
-        <VMakrdownContent :markdown="question.markdown_text" />
-      </VDetails>
+    <section v-if="isOwnAnswer && crosschecks?.length">
+      <VCrossChecks :crosschecks="crosschecks" />
     </section>
     <section class="VHomeworkAnswerView__Section">
       <VHeading tag="h2"> Отправленная работа</VHeading>
@@ -201,11 +212,36 @@
         @after-delete="handleDeleteAnswer"
       />
     </section>
-    <section>
-      <VCrossChecks
-        v-if="isOwnAnswer && crosschecks?.length"
-        :crosschecks="crosschecks"
-      />
+    <section class="VHomeworkAnswerView__Section -mt-16">
+      <div
+        v-if="isOwnAnswer"
+        class="card mb-16 flex flex-col gap-8 bg-accent-green"
+      >
+        <VHeading tag="h3">
+          Поделитесь ссылкой на свою домашку в чате учеников
+        </VHeading>
+        <p class="text-sub">
+          В течение курса коллеги по курсу будут присылать вам обратную связь на
+          вашу домашку, но если ее недостаточно или хочется больше фидбэка —
+          поделитесь ссылкой в чатике курса.
+        </p>
+        <p class="text-sub">Так повысите вероятность, что это случится.</p>
+        <div
+          v-if="answerLink"
+          class="select-all break-all rounded-8 bg-white/50 px-8 py-8 text-sub"
+          style="font-family: monospace"
+        >
+          {{ answerLink }}
+        </div>
+      </div>
+      <VDetails>
+        <template #summary> Текст задания </template>
+        <VMakrdownContent
+          :markdown="question.markdown_text"
+          :enable-lightbox="true"
+          :group="question.slug"
+        />
+      </VDetails>
     </section>
     <section class="VHomeworkAnswerView__Section">
       <VHeading tag="h2">
@@ -228,7 +264,8 @@
 
       <VCreateAnswer
         v-model="content"
-        :is-pending="isCreateAnswerPending"
+        :error="error"
+        :is-pending="isPending"
         @send="handleCreateComment"
       />
       <div

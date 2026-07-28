@@ -7,7 +7,7 @@ import { ALLOWED_REACTIONS } from '@/components/VReactions/VReactions.vue';
 import { getName } from '@/utils/getName';
 import type VAvatar from '@/components/VAvatar/VAvatar.vue';
 import { times } from 'lodash-es';
-import { mockReactionDetailed } from '@/mocks/mockReactionDetailed';
+import { createReactionDetailed } from '@/api/generated';
 import VTransparentComponent from '@/mocks/VTransparentComponent.vue';
 
 const emoji = faker.helpers.arrayElement(ALLOWED_REACTIONS);
@@ -16,7 +16,7 @@ const userId = faker.string.uuid();
 const defaultProps = {
   emoji,
   reactions: times(faker.number.int({ min: 1, max: 10 }), () =>
-    mockReactionDetailed(),
+    createReactionDetailed(),
   ),
   disabled: false,
   userId,
@@ -94,10 +94,11 @@ describe('VReaction', () => {
 
   test('displays tooltip on hover', () => {
     expect(getAuthorWrapper().attributes('title')).toBe(
-      getName(
-        defaultProps.reactions[0].author.first_name,
-        defaultProps.reactions[0].author.last_name,
-      ),
+      getName({
+        firstName: defaultProps.reactions[0].author.first_name,
+        lastName: defaultProps.reactions[0].author.last_name,
+        randomName: defaultProps.reactions[0].author.random_name,
+      }),
     );
   });
 

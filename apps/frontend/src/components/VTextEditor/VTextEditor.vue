@@ -22,16 +22,18 @@
     IconRowRemove,
     IconColumnRemove,
     IconTableOff,
+    IconSeparator,
   } from '@tabler/icons-vue';
   import { onBeforeUnmount, ref, useTemplateRef, watch, computed } from 'vue';
   import { onKeyDown, useKeyModifier, useFocusWithin } from '@vueuse/core';
   import VLoader from '@/components/VLoader/VLoader.vue';
-  import { useHomeworkAnswerSendImageMutation } from '@/query';
+  import { homeworkAnswersImageCreate } from '@/api/generated';
   import { isEqual } from 'lodash-es';
 
   const props = withDefaults(
     defineProps<{
       placeholder?: string;
+      legacyText?: string;
     }>(),
     {
       placeholder: '',
@@ -54,7 +56,20 @@
    *   - Markdown produced by tiptap is used to be sent to LMS
    */
 
-  const content = defineModel<string | object>({ required: true });
+  const content = defineModel<Record<string, unknown>>({ required: true });
+
+  const contentOrLegacyText = computed({
+    get() {
+      if (Object.keys(content.value).length === 0 && props.legacyText) {
+        return props.legacyText;
+      }
+
+      return content.value;
+    },
+    set(value) {
+      content.value = value as Record<string, unknown>;
+    },
+  });
 
   const currentEditor = useTemplateRef('currentEditor');
   const isImageLoading = ref(false);
@@ -75,7 +90,7 @@
 
   const editLink = () => {
     const previousUrl = (editor.getAttributes('link')?.href as string) || '';
-    // eslint-disable-next-line no-alert
+
     const url = window.prompt('Enter URL', previousUrl);
     if (url === null) return;
     if (url === '') {
@@ -92,12 +107,10 @@
     }
   });
 
-  const { mutateAsync: sendImage } = useHomeworkAnswerSendImageMutation();
-
   const extensions = getExtensions({ placeholder: props.placeholder });
 
   const editor = new Editor({
-    content: content.value,
+    content: contentOrLegacyText.value,
     extensions,
     editorProps: {
       handlePaste: (_view, event) => {
@@ -112,7 +125,7 @@
           const file = imageItem.getAsFile();
           if (file) {
             // Handle image upload in the background
-            void sendImage(file)
+            void homeworkAnswersImageCreate({ image: file })
               .then(({ image }) => {
                 editor.commands.setImage({ src: image });
               })
@@ -138,17 +151,20 @@
         if (!candidate) return false;
 
         const looksLikeMarkdown =
-          !!markdownFromClipboard ||
-          /^(\s{0,3}#{1,6}\s|\*\s|-\s|\d+\.\s|>\s|`{1,3}|!\[|\[.*?]\(.*?\))/m.test(
-            candidate,
-          );
-        if (!looksLikeMarkdown) return false;
+          !!markdownFromClipboard || /^\s{0,3}#{1,6}\s/m.test(candidate);
 
-        event.preventDefault();
-        const htmlFromMarkdown = marked.parse(candidate);
-        // Insert converted HTML at current selection
-        editor.chain().focus().insertContent(String(htmlFromMarkdown)).run();
-        return true;
+        // Only convert markdown if it actually looks like markdown
+        // Otherwise, let TipTap handle HTML paste natively to preserve styles
+        if (looksLikeMarkdown) {
+          event.preventDefault();
+          const htmlFromMarkdown = marked.parse(candidate);
+          // Insert converted HTML at current selection
+          editor.chain().focus().insertContent(String(htmlFromMarkdown)).run();
+          return true;
+        }
+
+        // Let TipTap handle styled HTML paste natively
+        return false;
       },
       handleDrop: (view, event, slice, moved) => {
         if (
@@ -163,7 +179,7 @@
           const file = event.dataTransfer.files[0];
 
           // eslint-disable-next-line promise/catch-or-return
-          sendImage(file).then(({ image }) => {
+          homeworkAnswersImageCreate({ image: file }).then(({ image }) => {
             const { schema } = view.state;
             const coordinates = view.posAtCoords({
               left: event.clientX,
@@ -276,7 +292,7 @@
     if (event.target) {
       const file = (event.target as HTMLInputElement).files?.[0];
       if (file) {
-        const { image } = await sendImage(file);
+        const { image } = await homeworkAnswersImageCreate({ image: file });
         editor.commands.setImage({ src: image });
       }
     }
@@ -352,6 +368,13 @@
           @click="toggleItalic"
         >
           <IconItalic />
+        </button>
+        <button
+          class="TextEditor__Button"
+          :class="{ TextEditor__Button_Active: editor.isActive('underline') }"
+          @click="editor.chain().focus().setHorizontalRule().run()"
+        >
+          <IconSeparator />
         </button>
         <button
           class="TextEditor__Button"
@@ -483,7 +506,7 @@
   }
 
   .ProseMirror {
-    @apply prose max-w-none outline-none dark:prose-invert;
+    @apply max-w-none outline-none dark:prose-invert;
   }
 
   .ProseMirror-focused {

@@ -3,10 +3,11 @@ import type { RouteLocation, RouteLocationNormalized } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 import { loginByToken } from '@/router/loginByToken';
 import { loginById } from '@/router/loginById';
-import { baseQueryKey, fetchHomeworkAnswer } from '@/query';
+import { homeworkAnswersRetrieveQueryOptions } from '@/api/generated';
 import VLoadingView from '@/views/VLoadingView/VLoadingView.vue';
 import { AllowMeta } from '@/types';
 import { queryClient } from '@/queryClient';
+import { isMaterialBookmarkUpdate } from '@/views/VMaterialView/VMaterialView';
 
 export const routes = [
   {
@@ -116,7 +117,7 @@ export const routes = [
   {
     path: '/materials/:materialId',
     name: 'materials',
-    component: () => import('@/views/VNotionView/VNotionView.vue'),
+    component: () => import('@/views/VMaterialView/VMaterialView.vue'),
     props: (route: RouteLocationNormalized) => ({
       materialId: route.params.materialId as string,
     }),
@@ -173,7 +174,9 @@ export const routes = [
     beforeEnter: [
       async (to: RouteLocationNormalized) => {
         const answerId = to.params.answerId as string;
-        const answer = await fetchHomeworkAnswer(queryClient, { answerId });
+        const answer = await queryClient.fetchQuery(
+          homeworkAnswersRetrieveQueryOptions(answerId),
+        );
         return {
           name: 'homework',
           params: { questionId: answer.question },
@@ -239,7 +242,11 @@ router.beforeEach(
 
     const { token } = useAuth();
 
-    queryClient.invalidateQueries({ queryKey: baseQueryKey() });
+    const isHashChange = from.path === to.path && from.hash !== to.hash;
+
+    if ([!isMaterialBookmarkUpdate(from, to), isHashChange].some(Boolean)) {
+      queryClient.invalidateQueries();
+    }
 
     // Redirect to existing route if route does not exist
     if (!to.name) {

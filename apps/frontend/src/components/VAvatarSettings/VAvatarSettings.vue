@@ -3,13 +3,14 @@
   import VCard from '@/components/VCard/VCard.vue';
   import VAvatar from '@/components/VAvatar/VAvatar.vue';
   import VButton from '@/components/VButton/VButton.vue';
-  import { useUserQuery, useUpdateUserAvatarMutation } from '@/query';
+  import { useUsersMeRetrieve, usersMeRetrieveQueryKey } from '@/api/generated';
   import { useQueryClient } from '@tanstack/vue-query';
+  import { createHttpClient } from '@/api/client';
+  import VError from '@/components/VError/VError.vue';
+  import type { FormError } from '@/types/error';
 
   const queryClient = useQueryClient();
-  const { data: user } = useUserQuery();
-  const { mutateAsync: updateAvatar, isPending: isUpdatePending } =
-    useUpdateUserAvatarMutation(queryClient);
+  const { data: user } = useUsersMeRetrieve();
 
   const avatar = ref();
   const file = ref();
@@ -24,8 +25,39 @@
     file.value = undefined;
   };
 
+  const isPending = ref(false);
+
+  const error = ref<FormError | null>(null);
+
   const saveProfile = async () => {
-    await updateAvatar(file.value || null);
+    const avatarFile = file.value || null;
+    const formData = new FormData();
+
+    if (avatarFile) {
+      formData.append('avatar', avatarFile);
+    } else {
+      formData.append('avatar', '');
+    }
+
+    isPending.value = true;
+
+    // #FIXME this should be done with kubb when avatar will be marked as multipart/form-data
+    const httpClient = createHttpClient();
+
+    try {
+      await httpClient.patch('/api/v2/users/me/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      queryClient.invalidateQueries({
+        queryKey: usersMeRetrieveQueryKey(),
+      });
+    } catch (caughtError) {
+      error.value = caughtError as unknown as FormError;
+    } finally {
+      isPending.value = false;
+    }
   };
 
   // #FIXME
@@ -51,32 +83,51 @@
       <avatar-cropper
         v-model="showCropper"
         :labels="{ cancel: 'Отменить', submit: 'Сохранить' }"
-        :upload-handler="showPreview" />
+        :upload-handler="showPreview"
+      />
       <div class="flex gap-16">
-        <VAvatar :user-id="user.uuid" :image="avatar" size="md" />
+        <VAvatar
+          :user-id="user.uuid"
+          :image="avatar"
+          size="md"
+        />
         <button
           data-testid="upload"
           class="link p-6"
-          @click="showCropper = true">
+          @click="showCropper = true"
+        >
           Загрузить
         </button>
         <button
           v-if="avatar"
           data-testid="delete"
           class="p-6 hover:text-red"
-          @click="deleteAvatar">
+          @click="deleteAvatar"
+        >
           Удалить
         </button>
       </div>
+      <VError :error="error" />
     </template>
     <template #footer>
       <VButton
         data-testid="save"
         :disabled="isSaveButtonDisabled"
-        :loading="isUpdatePending"
-        @click="saveProfile">
-        {{ isUpdatePending ? 'Сохраняется...' : 'Сохранить' }}
+        :loading="isPending"
+        @click="saveProfile"
+      >
+        {{ isPending ? 'Сохраняется...' : 'Сохранить' }}
       </VButton>
     </template>
   </VCard>
 </template>
+
+<style>
+  .avatar-cropper {
+    color: black;
+  }
+
+  .avatar-cropper-btn:hover {
+    @apply !bg-yellow !text-black;
+  }
+</style>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ReactionDetailed } from '@/api/generated/generated-api';
+  import type { ReactionDetailed } from '@/api/generated';
 
   export enum ReactionEmoji {
     LIKE = '👍',
@@ -10,6 +10,7 @@
     HEART = '❤️',
     ROCKET = '🚀',
     SEEN = '👀',
+    FIRE = '🔥',
   }
 
   export interface VReactionsProps {
@@ -28,7 +29,7 @@
   import { computed, watch, ref, onMounted } from 'vue';
   import VReaction from './components/VReaction/VReaction.vue';
   import { groupBy, debounce } from 'lodash-es';
-  import { useUserQuery } from '@/query';
+  import { useUsersMeRetrieve } from '@/api/generated';
   import { uuid } from '@/utils/uuid';
 
   const props = withDefaults(defineProps<VReactionsProps>(), {
@@ -41,7 +42,7 @@
     remove: [reactionId: string];
   }>();
 
-  const { data: user } = useUserQuery();
+  const { data: user } = useUsersMeRetrieve();
 
   const localReactions = ref<ReactionDetailed[]>([]);
 

@@ -9,11 +9,12 @@
   import { useAutoAnimate } from '@formkit/auto-animate/vue';
   import VButton from '@/components/VButton/VButton.vue';
   import {
-    useRemoveHomeworkReactionMutation,
-    useAddHomeworkReactionMutation,
-  } from '@/query';
+    useHomeworkAnswersReactionsDestroy,
+    useHomeworkAnswersReactionsCreate,
+    homeworkAnswersRetrieveQueryKey,
+  } from '@/api/generated';
   import { useQueryClient } from '@tanstack/vue-query';
-  import type { AnswerTree, UserSafe } from '@/api/generated/generated-api';
+  import type { AnswerTree, UserSafe } from '@/api/generated';
 
   const props = defineProps<{
     answer: AnswerTree;
@@ -28,11 +29,26 @@
 
   const queryClient = useQueryClient();
 
-  const { mutateAsync: sendAddReaction } =
-    useAddHomeworkReactionMutation(queryClient);
+  const { mutateAsync: sendAddReaction } = useHomeworkAnswersReactionsCreate({
+    mutation: {
+      onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({
+          queryKey: homeworkAnswersRetrieveQueryKey(variables.answer_slug),
+        });
+      },
+    },
+  });
 
   const { mutateAsync: sendRemoveReaction } =
-    useRemoveHomeworkReactionMutation(queryClient);
+    useHomeworkAnswersReactionsDestroy({
+      mutation: {
+        onSuccess: (_, variables) => {
+          queryClient.invalidateQueries({
+            queryKey: homeworkAnswersRetrieveQueryKey(variables.slug),
+          });
+        },
+      },
+    });
 
   const togglePalette = () => (isPaletteOpen.value = !isPaletteOpen.value);
   const closePalette = () => (isPaletteOpen.value = false);
@@ -41,7 +57,18 @@
 </script>
 
 <template>
-  <div class="flex flex-col gap-8">
+  <div
+    data-testid="answer-container"
+    class="flex flex-col gap-8 rounded-8 p-8 tablet:p-16"
+    :class="
+      answer.author.rank_label_color
+        ? 'text-black dark:text-black'
+        : 'text-black dark:text-white'
+    "
+    :style="{
+      backgroundColor: answer.author.rank_label_color ?? 'transparent',
+    }"
+  >
     <div class="flex items-center gap-8">
       <VAvatar
         data-testid="avatar"
@@ -50,11 +77,16 @@
       />
       <div>
         <div
-          class="font-bold text-black dark:text-white"
-          :class="{ VAnswer__Name_Own: isOwn }"
+          class="font-bold"
           data-testid="name"
         >
-          {{ getName(answer.author.first_name, answer.author.last_name) }}
+          {{
+            getName({
+              firstName: answer.author.first_name,
+              lastName: answer.author.last_name,
+              randomName: answer.author.random_name,
+            })
+          }}
         </div>
       </div>
       <div class="flex-grow" />
@@ -64,10 +96,10 @@
       :answer="answer"
       data-testid="content"
     />
-    <div class="flex flex-wrap items-center justify-start gap-8">
+    <div class="mt-8 flex flex-wrap items-center justify-start gap-8">
       <slot name="footer" />
       <div
-        class="text-sub leading-tight text-gray"
+        class="text-sub leading-tight opacity-70"
         data-testid="date"
       >
         {{ relativeDate(answer.created) }}
@@ -96,20 +128,17 @@
           @close="closePalette"
           @add="
             (emoji) =>
-              sendAddReaction({ answerId: answer.slug, reaction: emoji })
+              sendAddReaction({
+                answer_slug: answer.slug,
+                data: { emoji },
+              })
           "
           @remove="
             (reactionId) =>
-              sendRemoveReaction({ answerId: answer.slug, reactionId })
+              sendRemoveReaction({ answer_slug: answer.slug, slug: reactionId })
           "
         />
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-  .VAnswer__Name_Own {
-    @apply text-accent-orange;
-  }
-</style>

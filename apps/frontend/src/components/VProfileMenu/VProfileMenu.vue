@@ -3,8 +3,9 @@
   import { onClickOutside } from '@vueuse/core';
   import VAvatar from '@/components/VAvatar/VAvatar.vue';
   import { useRouter } from 'vue-router';
-  import { useUserQuery } from '@/query';
+  import { useUsersMeRetrieve } from '@/api/generated';
   import { getName } from '@/utils/getName';
+  import { LANDING_URL } from '@/constants';
 
   export interface ProfileMenuItem {
     label: string;
@@ -16,7 +17,7 @@
   const isOpen = ref(false);
   const menu = useTemplateRef('menu');
   const router = useRouter();
-  const { data: user } = useUserQuery();
+  const { data: user } = useUsersMeRetrieve();
 
   onClickOutside(menu, () => (isOpen.value = false));
 
@@ -40,6 +41,13 @@
         router.push({ name: 'courses' });
       },
       id: 'home',
+    },
+    {
+      label: 'На сайт',
+      action: () => {
+        window.open(LANDING_URL, '_blank');
+      },
+      id: 'website',
     },
     {
       label: 'Сертификаты',
@@ -73,27 +81,42 @@
   ]);
 
   const fullName = computed(() =>
-    getName(user.value?.first_name, user.value?.last_name),
+    getName({
+      firstName: user.value?.first_name,
+      lastName: user.value?.last_name,
+      randomName: user.value?.random_name,
+    }),
   );
 </script>
 
 <template>
-  <div ref="menu" class="relative">
+  <div
+    ref="menu"
+    class="relative ms-auto min-w-0"
+  >
     <div class="flex items-center gap-8">
       <button
-        class="flex items-center gap-8 rounded-8 p-8 hover:bg-gray hover:bg-opacity-10"
+        class="flex max-w-full items-center gap-8 rounded-8 px-16 py-8 hover:bg-gray hover:bg-opacity-10"
         :class="{ VProfileMenu__Button_Active: isOpen }"
         data-testid="button"
-        @click="isOpen = !isOpen">
+        @click="isOpen = !isOpen"
+      >
         <VAvatar
           :user-id="user?.uuid ?? ''"
           :image="user?.avatar || undefined"
-          data-testid="avatar" />
-        <ul class="flex flex-col items-start">
-          <li class="text-black dark:text-white" data-testid="name">
+          data-testid="avatar"
+        />
+        <ul class="flex min-w-0 flex-col items-start">
+          <li
+            class="max-w-full truncate text-black dark:text-white"
+            data-testid="name"
+          >
             {{ fullName }}
           </li>
-          <li class="text-sub text-gray" data-testid="username">
+          <li
+            class="max-w-full truncate text-sub text-gray"
+            data-testid="username"
+          >
             {{ user?.username }}
           </li>
         </ul>
@@ -102,16 +125,19 @@
     <Transition name="fade">
       <nav
         v-if="isOpen"
-        class="float-card absolute right-0 z-10 translate-y-8"
-        data-testid="menu">
+        class="float-card absolute right-0 z-10 min-w-full translate-y-8"
+        data-testid="menu"
+      >
         <ul>
           <li
             v-for="item in menuItems.filter((item) => !item.isHidden)"
-            :key="item.id">
+            :key="item.id"
+          >
             <button
               class="VProfileMenu__Item"
               :data-testid="item.id"
-              @click="handleItemClick(item.action)">
+              @click="handleItemClick(item.action)"
+            >
               <span>{{ item.label }}</span>
             </button>
           </li>
@@ -126,7 +152,7 @@
     @apply bg-gray bg-opacity-10;
   }
   .VProfileMenu__Item {
-    @apply flex min-h-[32px] w-full cursor-pointer items-center whitespace-nowrap px-8 text-left hover:bg-gray hover:bg-opacity-10;
+    @apply flex min-h-[32px] w-full cursor-pointer items-center whitespace-nowrap px-[20px] py-8 text-left hover:bg-gray hover:bg-opacity-10;
   }
 
   .fade-enter-active,

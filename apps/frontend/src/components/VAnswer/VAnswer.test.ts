@@ -7,21 +7,19 @@ import type VAnswerContent from '@/components/VAnswerContent/VAnswerContent.vue'
 import dayjs from 'dayjs';
 import { cloneDeep } from 'lodash-es';
 import { faker } from '@faker-js/faker';
-import { mockAnswer } from '@/mocks/mockAnswer';
-import { mockUserSafe } from '@/mocks/mockUserSafe';
 import {
-  useRemoveHomeworkReactionMutation,
-  useAddHomeworkReactionMutation,
-} from '@/query';
+  createAnswerTree,
+  createUserSafe,
+  useHomeworkAnswersReactionsDestroy,
+  useHomeworkAnswersReactionsCreate,
+} from '@/api/generated';
 
 const uuid = faker.string.uuid();
 
 const defaultProps = {
-  answer: mockAnswer(),
-  user: mockUserSafe({
-    payload: {
-      uuid,
-    },
+  answer: createAnswerTree(),
+  user: createUserSafe({
+    uuid,
   }),
 };
 
@@ -29,7 +27,14 @@ vi.mock('@formkit/auto-animate/vue', () => ({
   useAutoAnimate: () => [null],
 }));
 
-vi.mock('@/query');
+vi.mock('@/api/generated', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/generated')>();
+  return {
+    ...actual,
+    useHomeworkAnswersReactionsDestroy: vi.fn(),
+    useHomeworkAnswersReactionsCreate: vi.fn(),
+  };
+});
 vi.mock('@tanstack/vue-query');
 
 const defaultMountOptions = {
@@ -47,16 +52,12 @@ describe('VAnswer', () => {
   let wrapper: VueWrapper<InstanceType<typeof VAnswer>>;
 
   beforeEach(() => {
-    (
-      useRemoveHomeworkReactionMutation as ReturnType<typeof vi.fn>
-    ).mockReturnValue({
+    vi.mocked(useHomeworkAnswersReactionsDestroy).mockReturnValue({
       mutateAsync: vi.fn(),
-    });
-    (
-      useAddHomeworkReactionMutation as ReturnType<typeof vi.fn>
-    ).mockReturnValue({
+    } as any);
+    vi.mocked(useHomeworkAnswersReactionsCreate).mockReturnValue({
       mutateAsync: vi.fn(),
-    });
+    } as any);
     wrapper = mount(VAnswer, defaultMountOptions);
   });
 
@@ -74,8 +75,9 @@ describe('VAnswer', () => {
       '[data-testid="content"]',
     );
   };
-  const getOwnerBadgeWrapper = () => {
-    return wrapper.find('.VAnswer__Name_Own');
+
+  const getAnswerContainerWrapper = () => {
+    return wrapper.find('[data-testid="answer-container"]');
   };
 
   test('props to display avatar passed to VAvatar', () => {
@@ -85,9 +87,15 @@ describe('VAnswer', () => {
   });
 
   test('answer has author name', () => {
-    const { first_name, last_name } = defaultProps.answer.author;
+    const { first_name, last_name, random_name } = defaultProps.answer.author;
 
-    expect(getNameWrapper().text()).toBe(getName(first_name, last_name));
+    expect(getNameWrapper().text()).toBe(
+      getName({
+        firstName: first_name,
+        lastName: last_name,
+        randomName: random_name,
+      }),
+    );
   });
 
   test('answer has relative date', () => {
@@ -107,15 +115,29 @@ describe('VAnswer', () => {
     );
   });
 
-  test('answer has own badge if user is not matching author', () => {
-    expect(getOwnerBadgeWrapper().exists()).toBe(false);
+  test('all answers have rounded corners and padding', () => {
+    const answerContainer = getAnswerContainerWrapper();
+
+    expect(answerContainer.classes()).toContain('rounded-8');
+    expect(answerContainer.classes()).toContain('p-8');
   });
 
-  test('answer has own badge if user matches author', () => {
+  test('answer without rank_label_color has transparent background', () => {
+    const answerContainer = getAnswerContainerWrapper();
+    const element = answerContainer.element as HTMLElement;
+
+    // Browser returns empty string for transparent backgrounds
+    expect(['transparent', '']).toContain(element.style.backgroundColor);
+  });
+
+  test('answer with rank_label_color has that background color', () => {
     const props = cloneDeep(defaultProps);
-    props.answer.author.uuid = uuid;
+    props.answer.author.rank_label_color = '#F7CA45';
     wrapper = mount(VAnswer, { ...defaultMountOptions, props });
 
-    expect(getOwnerBadgeWrapper().exists()).toBe(true);
+    const answerContainer = getAnswerContainerWrapper();
+    const element = answerContainer.element as HTMLElement;
+
+    expect(element.style.backgroundColor).toBe('rgb(247, 202, 69)');
   });
 });

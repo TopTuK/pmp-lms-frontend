@@ -2,16 +2,20 @@
   import VTextEditor from '@/components/VTextEditor/VTextEditor.vue';
   import VButton from '@/components/VButton/VButton.vue';
   import { computed, useTemplateRef } from 'vue';
+  import VError from '@/components/VError/VError.vue';
+  import type { FormError } from '@/types/error';
 
   const props = defineProps<{
+    legacyText?: string;
     isPending: boolean;
+    error: FormError;
   }>();
 
   const emit = defineEmits<{
     send: [];
   }>();
 
-  const content = defineModel<string | object>({ required: true });
+  const content = defineModel<Record<string, unknown>>({ required: true });
 
   const editor = useTemplateRef<InstanceType<typeof VTextEditor>>('editor');
 
@@ -25,14 +29,18 @@
     <VTextEditor
       ref="editor"
       v-model="content"
+      :legacy-text="legacyText"
       class="SendOwnAnswer__Editor"
-      @send="emit('send')" />
+      @send="emit('send')"
+    />
     <div class="SendOwnAnswer__Footer">
+      <VError :error="error" />
       <VButton
         :disabled="isDisabled"
         :loading="isPending"
         class="h-32"
-        @click="emit('send')">
+        @click="emit('send')"
+      >
         {{ isPending ? 'Отправляется...' : 'Отправить' }}
       </VButton>
     </div>

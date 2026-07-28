@@ -1,26 +1,26 @@
 <script setup lang="ts">
   import VPill from '@/components/VPill/VPill.vue';
   import VPillItem from '@/components/VPill/VPillItem.vue';
-  import type { HomeworkStats } from '@/api/generated/generated-api';
+  import type { Lesson } from '@/api/generated';
   import { computed } from 'vue';
-  import { formatDate, formatDateTime } from '@/utils/date';
+  import { DATE_TIME_FORMAT, formatDate } from '@/utils/date';
   import dayjs from 'dayjs';
 
   const props = defineProps<{
-    stats: HomeworkStats;
+    lesson: { question: Lesson['question']; homework: Lesson['homework'] };
   }>();
 
   const isOverdue = computed(() => {
     return (
-      props.stats.question?.deadline &&
-      new Date(props.stats.question.deadline) < new Date() &&
-      !props.stats.is_sent
+      props.lesson.question?.deadline &&
+      new Date(props.lesson.question.deadline) < new Date() &&
+      !props.lesson.homework.is_sent
     );
   });
 
   const isOverCrossCheckDate = computed(() => {
     return (
-      props.stats.question?.deadline &&
+      props.lesson.question?.deadline &&
       crossCheckDate.value &&
       dayjs().isAfter(crossCheckDate.value)
     );
@@ -28,8 +28,8 @@
 
   const crossCheckDate = computed(
     () =>
-      props.stats.question.deadline &&
-      dayjs(props.stats.question.deadline).add(1, 'day'),
+      props.lesson.question.deadline &&
+      dayjs(props.lesson.question.deadline).add(1, 'day'),
   );
 </script>
 
@@ -37,30 +37,32 @@
   <VPill>
     <VPillItem>
       Домашка:
-      {{ stats.is_sent ? 'Отправлена' : 'Не отправлена' }}
+      {{ lesson.homework.is_sent ? 'Отправлена' : 'Не отправлена' }}
     </VPillItem>
     <VPillItem
-      v-if="stats.is_sent && stats.crosschecks"
+      v-if="lesson.homework.is_sent && lesson.homework.crosschecks"
       :class="{ 'text-gray': crossCheckDate && !isOverCrossCheckDate }"
     >
       <div>
         <div>
           Работы на проверку:
-          {{ stats.crosschecks?.checked }} /
-          {{ stats.crosschecks?.total }}
+          {{ lesson.homework.crosschecks?.checked }} /
+          {{ lesson.homework.crosschecks?.total }}
         </div>
         <div v-if="crossCheckDate && !isOverCrossCheckDate">
           отправим
-          {{ formatDate(crossCheckDate) }}
+          {{ formatDate(crossCheckDate, DATE_TIME_FORMAT) }}
         </div>
       </div>
     </VPillItem>
     <VPillItem
-      v-if="stats.question?.deadline"
+      v-if="lesson.question?.deadline"
       :class="{ 'text-red': isOverdue }"
     >
       <div>
-        <div>Дедлайн: {{ formatDateTime(stats.question?.deadline) }}</div>
+        <div>
+          Дедлайн: {{ formatDate(lesson.question?.deadline, DATE_TIME_FORMAT) }}
+        </div>
         <div v-if="isOverdue">Просрочен</div>
       </div>
     </VPillItem>

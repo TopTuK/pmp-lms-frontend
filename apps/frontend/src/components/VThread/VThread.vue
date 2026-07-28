@@ -13,11 +13,16 @@
   import { ref, useTemplateRef } from 'vue';
   import { onClickOutside } from '@vueuse/core';
   import { useRoute, useRouter } from 'vue-router';
-  import { useHomeworkAnswerCreateMutation } from '@/query';
+  import {
+    useHomeworkAnswersCreate,
+    homeworkAnswersRetrieveQueryKey,
+    homeworkCrosschecksListQueryKey,
+    lmsLessonsListQueryKey,
+  } from '@/api/generated';
   import { useQueryClient } from '@tanstack/vue-query';
   import VCreateAnswer from '@/components/VCreateAnswer/VCreateAnswer.vue';
   import VExistingAnswer from '@/components/VExistingAnswer';
-  import type { AnswerTree, User } from '@/api/generated/generated-api';
+  import type { AnswerTree, User } from '@/api/generated';
   import { useEditorAutosave } from '@/composables/useEditorAutosave';
   import { getEmptyContent } from '@/utils/tiptap';
   import VThreadProvider from '.';
@@ -50,8 +55,27 @@
     replyMode.value = false;
   });
 
-  const { mutateAsync: createComment, isPending: isCreateCommentPending } =
-    useHomeworkAnswerCreateMutation(queryClient);
+  const {
+    mutateAsync: createComment,
+    isPending,
+    error,
+  } = useHomeworkAnswersCreate({
+    mutation: {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries({
+          queryKey: homeworkAnswersRetrieveQueryKey(data.parent),
+        });
+        queryClient.invalidateQueries({
+          queryKey: homeworkCrosschecksListQueryKey({
+            question: props.answer.question,
+          }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: lmsLessonsListQueryKey(),
+        });
+      },
+    },
+  });
 
   const { content } = useEditorAutosave([
     'commentText',
@@ -65,9 +89,11 @@
 
     try {
       const newComment = await createComment({
-        questionId: props.answer.question,
-        parentId: props.answer.slug,
-        content: content.value,
+        data: {
+          question: props.answer.question,
+          parent: props.answer.slug,
+          content: content.value,
+        },
       });
 
       content.value = getEmptyContent();
@@ -104,12 +130,14 @@
       :answer-id="answer.slug"
       @after-create="handleMounted"
     />
-    <button
-      class="text-sm link"
-      @click="replyMode = !replyMode"
-    >
-      {{ replyMode ? 'Отменить' : 'Ответить' }}
-    </button>
+    <div class="mt-4 px-8 tablet:px-16">
+      <button
+        class="text-sm link"
+        @click="replyMode = !replyMode"
+      >
+        {{ replyMode ? 'Отменить' : 'Ответить' }}
+      </button>
+    </div>
     <div
       class="thread-ruler"
       :class="{ 'mt-16': replyMode }"
@@ -117,7 +145,8 @@
       <VCreateAnswer
         v-show="replyMode"
         v-model="content"
-        :is-pending="isCreateCommentPending"
+        :is-pending="isPending"
+        :error="error"
         @send="handleCreateComment"
       />
     </div>
